@@ -48,16 +48,16 @@ notepad .env
 
 Preencha `DB_PASSWORD` com a senha do usuário do banco e salve. Para uma senha contendo `#`, envolva o valor em aspas. Preserve esse arquivo nas próximas atualizações.
 
-| Variável                        | Valor local e finalidade                                                                        |
-| ------------------------------- | ----------------------------------------------------------------------------------------------- |
-| NODE_ENV                        | `development` em desenvolvimento e `production` na hospedagem                                   |
-| PORT                            | `3000` localmente. A hospedagem fornece a porta do processo                                     |
-| PUBLIC_URL                      | `http://localhost:3000` para usar no próprio PC. É a origem absoluta usada ao gerar os QR Codes |
-| DB_HOST / DB_PORT               | `127.0.0.1` e `3306` por padrão                                                                 |
-| DB_NAME / DB_USER / DB_PASSWORD | `mesa_aberta`, `mesa_app` e a senha correspondente                                              |
-| SESSION_SECRET                  | Segredo de pelo menos 32 caracteres. Gere um próprio para produção e preserve-o entre versões   |
-| TRUST_PROXY                     | Número de proxies confiáveis até o processo. Use `0` no PC                                      |
-| MIGRATE_ON_START                | `false` para rodar migrações manualmente. `true` aplica as pendentes antes de aceitar tráfego   |
+| Variável                        | Valor local e finalidade                                                                       |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| NODE_ENV                        | `development` em desenvolvimento e `production` na hospedagem                                  |
+| PORT                            | `3000` localmente. A hospedagem fornece a porta do processo                                    |
+| PUBLIC_URL                      | `http://localhost:3000` para uso local. Define os QR Codes; se ausente, usa o domínio acessado |
+| DB_HOST / DB_PORT               | `127.0.0.1` e `3306` por padrão                                                                |
+| DB_NAME / DB_USER / DB_PASSWORD | `mesa_aberta`, `mesa_app` e a senha correspondente                                             |
+| SESSION_SECRET                  | Segredo de pelo menos 32 caracteres. Gere um próprio para produção e preserve-o entre versões  |
+| TRUST_PROXY                     | Número de proxies confiáveis até o processo. Use `0` no PC                                     |
+| MIGRATE_ON_START                | `false` para rodar migrações manualmente. `true` aplica as pendentes antes de aceitar tráfego  |
 
 **PowerShell, na pasta do projeto.**
 

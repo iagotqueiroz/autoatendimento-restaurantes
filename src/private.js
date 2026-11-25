@@ -140,8 +140,13 @@ staff.get('/qr/:id', access('dono'), async (req, res) => {
     req.user.store_id,
   ])
   check(t, 'Mesa não encontrada.', 404)
+  const publicUrl = new URL(process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`)
+  check(
+    process.env.NODE_ENV !== 'production' || publicUrl.protocol === 'https:',
+    'O endereço público precisa usar HTTPS.',
+  )
   res.attachment('mesa-' + req.params.id + '.png').send(
-    await QRCode.toBuffer(process.env.PUBLIC_URL.replace(/\/$/, '') + '/m/' + t.token, {
+    await QRCode.toBuffer(new URL('/m/' + t.token, publicUrl).href, {
       width: 650,
       margin: 4,
     }),

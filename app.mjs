@@ -17,9 +17,6 @@ check(
   process.env.SESSION_SECRET?.length >= 32,
   'Configure SESSION_SECRET com 32 caracteres ou mais.',
 )
-const publicUrl = new URL(process.env.PUBLIC_URL)
-check(!prod || publicUrl.protocol === 'https:', 'PUBLIC_URL deve usar HTTPS em produção.')
-
 async function start() {
   if (process.env.MIGRATE_ON_START === 'true') {
     const { migrate } = await import('./scripts/migrate.js')
