@@ -99,7 +99,7 @@ A documentação oficial de implantação da Hostinger lista aplicações Node n
 1. No hPanel, abra **Sites** e o gerenciamento do seu plano Business. Procure a opção de adicionar uma aplicação web Node.js. Se estiver ausente, informe o identificador do plano ao suporte e pergunte se esse contrato permite um processo Express 24 com MySQL, domínio próprio e deploy Git. Confirme a habilitação antes de contratar outro serviço.
 2. Adicione o site para o subdomínio, por exemplo `pedidos.meudominio.com.br`. No provedor de DNS do domínio, configure o registro indicado para esse site no hPanel. Espere o apontamento e a emissão do certificado SSL; abra o domínio com HTTPS.
 3. Na área de bancos MySQL do site, crie **um banco de produção e seu usuário**. Anote host, porta, nome completo, usuário com prefixo e senha. Conceda ao usuário acesso ao banco da aplicação, incluindo criação e alteração de tabelas para migrações.
-4. Envie esta versão ao GitHub. Conecte a conta na área de Git do site (**Websites → Manage → Advanced → Git**, conforme o guia oficial; o idioma e os rótulos podem variar). Autorize o repositório específico e selecione a branch que contém `server.js` e `package-lock.json`. Configure o destino como **aplicação Node.js**.
+4. Envie esta versão ao GitHub. Conecte a conta na área de Git do site (**Websites → Manage → Advanced → Git**, conforme o guia oficial; o idioma e os rótulos podem variar). Autorize o repositório específico e selecione a branch que contém `hostinger.cjs`, `server.js` e `package-lock.json`. Configure o destino como **aplicação Node.js**.
 5. Preencha as configurações da aplicação conforme a tabela abaixo. Nas variáveis do ambiente de execução, informe os valores do banco real, `NODE_ENV=production`, `PUBLIC_URL=https://pedidos.meudominio.com.br`, um novo `SESSION_SECRET` e `MIGRATE_ON_START=true`. Deixe a plataforma fornecer `PORT`. O arquivo `.env` local fica fora do Git.
 6. Confirme com a hospedagem o número de proxies confiáveis e o envio de `X-Forwarded-Proto: https`. Para **um proxy confiável** entre o cliente e o Node, use `TRUST_PROXY=1`. A aplicação usa cookie Secure em produção, HttpOnly e SameSite=Lax. Reinicie a implantação após alterar variáveis.
 7. Publique e confira os logs de build e de inicialização. As migrações registram cada versão aplicada em `migrations`. A inicialização valida acesso às sessões e à tabela de lojas.
@@ -111,8 +111,8 @@ A documentação oficial de implantação da Hostinger lista aplicações Node n
 | Diretório raiz             | `.` (pasta do package.json)                                 |
 | Gerenciador / instalação   | npm / `npm ci --omit=dev` quando o comando for configurável |
 | Build / diretório de saída | Sem compilação e sem pasta de saída                         |
-| Arquivo de entrada         | `server.js`                                                 |
-| Inicialização              | `npm start`, que executa `node server.js`                   |
+| Arquivo de entrada         | `hostinger.cjs`                                             |
+| Inicialização              | `npm start`, que executa `node hostinger.cjs`               |
 | Porta                      | `process.env.PORT`                                          |
 
 **Terminal do servidor**, quando seu plano disponibilizar Node e as variáveis da aplicação nesse terminal. Entre no diretório da implantação que contém `package.json`. Para migração manual e administração:
@@ -216,6 +216,7 @@ O operador autorizado da plataforma deve verificar a identidade da pessoa. No te
 
 | Caminho                           | Responsabilidade                                                     |
 | --------------------------------- | -------------------------------------------------------------------- |
+| `hostinger.cjs`                   | Ponto de entrada compatível com o carregador da Hostinger            |
 | `server.js`                       | Inicialização, sessão, proteção CSRF, login e rotas públicas         |
 | `src/accounts.js`                 | Cadastro transacional, hash, validade inicial do piloto              |
 | `src/private.js`                  | Permissões e operações de dono, equipe, plataforma e QR              |

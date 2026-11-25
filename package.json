@@ -7,7 +7,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node hostinger.cjs",
     "dev": "node --watch server.js",
     "migrate": "node scripts/manage.js migrate",
     "admin": "node scripts/manage.js admin",

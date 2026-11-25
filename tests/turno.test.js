@@ -20,7 +20,7 @@ const base = 'http://127.0.0.1:' + Number(process.env.TEST_PORT || 3319),
 let server, A, B, client, table, store, product, category, options, paid, later, menu, image
 const contexts = []
 async function start() {
-  server = spawn(process.execPath, ['server.js'], {
+  server = spawn(process.execPath, ['hostinger.cjs'], {
     env: {
       ...process.env,
       PORT: new URL(base).port,
