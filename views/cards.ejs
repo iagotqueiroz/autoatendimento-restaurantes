@@ -1,0 +1,29 @@
+<% if(!orders.length){ %><p>Nenhum pedido nesta fila.</p><% } for(const o of orders){ %><article class="panel order"
+  data-id="<%= o.id %>"><span class="eyebrow"><%= o.origin %> · <%= o.mode %></span>
+  <h2>Pedido #<%= o.id %></h2><small><%= date(o.created) %> ·
+    <%= Math.max(0,Math.floor((Date.now()-Date.parse(o.created.replace(' ','T')+'Z'))/60000)) %> min desde o
+    envio</small>
+  <p><span class="pill"><%= o.stage %></span> <span
+      class="pill <%= o.payment==='pago'?'green':'' %>"><%= o.payment %></span></p><% for(const i of o.items){ %><p>
+    <b><%= i.quantity %> ×
+      <%= i.name %></b><br><%= json(i.options_json).map(x=>x.name).join(', ') %><% if(i.note){ %><br><mark><%= i.note %></mark><% } %>
+  </p><% } %><strong><%= money(o.total) %></strong><% if(o.cashier){ %><p><%= o.method %> · <%= o.cashier %> ·
+    <%= date(o.paid_at) %></p><% } %><form method="post" action="/painel/pedidos/<%= o.id %>">
+    <%- include('csrf') %><input type="hidden" name="view"
+      value="<%= view %>"><% if(view==='cozinha'){const step={'aguarda aceite':['aceito','Aceitar pedido'],aceito:['em preparo','Iniciar preparo'],'em preparo':['pronto','Marcar pronto']}[o.stage]; %><button
+      name="action" value="<%= step[0] %>"><%= step[1] %></button><% }else{ if(o.payment==='pendente'){ %><label>Forma
+      de pagamento<select name="method">
+        <option>Dinheiro</option>
+        <option>Pix presencial</option>
+        <option>Cartão</option>
+      </select></label><button name="action" value="pagar">Confirmar
+      recebimento</button><% } if(o.payment==='a devolver'){ %><button name="action" value="devolver">Confirmar
+      devolução presencial</button><% } if(o.stage==='pronto'){ %><button name="action" value="entregue">Confirmar
+      entrega</button><% } if(!['entregue','cancelado'].includes(o.stage)){ %><details>
+      <summary>Cancelar pedido</summary><label>Motivo<input name="reason" maxlength="300"></label><button name="action"
+        value="cancelar">Confirmar cancelamento</button>
+    </details><% } } %></form><% if(o.events.length){ %><details>
+    <summary>Histórico</summary><% for(const e of o.events){ %><p><%= date(e.created) %> · <%= e.actor %> ·
+      <%= e.action %> <%= e.reason %></p><% } %>
+  </details><% } %>
+</article><% } %>

@@ -1,0 +1,8 @@
+<header class="top"><a href="/painel" aria-label="Mesa Aberta"><%- include('brand') %></a>
+  <nav><% if(user.role==='dono'){ %><a href="/painel/loja">Minha
+      loja</a><% } if(['dono','caixa'].includes(user.role)){ %><a
+      href="/painel/caixa">Caixa</a><% } if(['dono','cozinha'].includes(user.role)){ %><a
+      href="/painel/cozinha">Cozinha</a><% } %><form action="/sair" method="post"><%- include('csrf') %><button
+        class="quiet">Sair</button></form>
+  </nav>
+</header>

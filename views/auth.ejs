@@ -1,0 +1,41 @@
+<%- include('head',{title:signup?'Criar restaurante':'Acesso ao painel'}) %>
+<header class="top"><a href="/"><%- include('brand') %></a>
+  <nav><span class="muted"> <%= signup?'Já tem uma conta?':'Ainda não tem conta?' %></span><a class="outline"
+      href="<%= signup?'/login':'/cadastro' %>"><%= signup?'Entrar':'Criar restaurante' %> ↗</a></nav>
+</header>
+<main class="auth">
+  <section class="cover"><img src="/assets/restaurante.webp"
+      alt="Prato de frango crocante com arroz, batatas e vinagrete">
+    <div class="covertext"><span class="eyebrow">GESTÃO DE RESTAURANTES</span>
+      <h1>Do pedido<br>à entrega<span>.</span></h1>
+      <p>Cardápio digital, cozinha e caixa<br>no mesmo lugar.</p>
+    </div>
+  </section>
+  <section class="authform"><span class="eyebrow"><i class="dot"></i> ÁREA DO RESTAURANTE</span>
+    <h2><%= signup?'Crie sua conta':'Acesse seu painel' %></h2>
+    <p class="muted">
+      <%= signup?'Cadastre sua loja para começar o período de teste.':'Entre com os dados da sua conta para continuar.' %>
+    </p>
+    <form method="post" action="<%= signup?'/cadastro':'/login' %>"><%- include('csrf') %>
+      <% if(signup){ %><label>Seu nome<input name="name" required maxlength="100"
+          autocomplete="name"></label><label>Nome do restaurante<input name="store" required
+          maxlength="100"></label><label>Endereço do cardápio<input name="slug" placeholder="meu-restaurante" required
+          pattern="[a-z0-9]+(-[a-z0-9]+)*"></label><% } %>
+      <label>E-mail<input name="email" type="email" autocomplete="username" required
+          placeholder="voce@restaurante.com.br"></label>
+      <label>Senha<span class="pw"><input name="password" type="password"
+            autocomplete="<%= signup?'new-password':'current-password' %>" required minlength="<%= signup?10:1 %>"
+            placeholder="<%= signup?'Pelo menos 10 caracteres':'Digite sua senha' %>"><button type="button" class="peek"
+            aria-label="Mostrar senha">◉</button></span></label>
+      <button class="primary wide"><%= signup?'Criar restaurante':'Entrar no painel' %> <b>→</b></button>
+    </form>
+    <% if(!signup){ %><details class="help">
+      <summary>Precisa de ajuda para entrar?</summary>
+      <p>Peça a recuperação de acesso ao administrador da plataforma.</p>
+    </details><% } %>
+  </section>
+</main>
+<footer>Mesa Aberta <span>Autoatendimento para restaurantes</span></footer>
+</body>
+
+</html>

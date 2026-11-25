@@ -1,0 +1,13 @@
+<%- include('head',{title:'Plataforma'}) %><%- include('nav') %><main><span class="eyebrow">PLATAFORMA</span>
+  <h1>Restaurantes</h1><% for(const s of stores){ %><section class="panel">
+    <h2><%= s.name %></h2>
+    <% if(s.started){ %><p>Período de teste de <%= s.started.split('-').reverse().join('/') %> a <%= s.ends.split('-').reverse().join('/') %>.</p><% } %><form class="row" action="/painel/plataforma/<%= s.id %>" method="post">
+      <%- include('csrf') %><label>Assinatura<select name="status"><% for(const v of ['teste','ativa','suspensa']){ %>
+          <option <%= s.subscription===v?'selected':'' %>><%= v %></option>
+          <% } %></select></label><label>Vencimento<input name="expires" type="date" required
+          value="<%= s.expires %>"></label><button>Salvar assinatura</button></form>
+  </section><% } %>
+</main>
+</body>
+
+</html>

@@ -1,0 +1,36 @@
+<%- include('head',{title:store.name}) %><header class="top"><strong><% if(store.logo){ %><img class="logo" alt=""
+      src="/img/<%= store.logo %>"><% } %><%= store.name %></strong><span
+    class="pill"><%= preview?'Prévia':table?table.name:'Balcão' %></span></header>
+<main id="menu" data-base="<%= base %>" data-kiosk="<%= !table&&!preview %>" data-preview="<%= preview %>"
+  data-products="<%= JSON.stringify(products.map(({id,name,description,groups,price,promo,image})=>({id,name,description,groups,price,promo,image}))) %>">
+  <% if(!table&&!preview){ %><section class="panel kiosk" id="welcome"><span class="eyebrow">AUTOATENDIMENTO</span>
+    <h1><%= store.name %></h1><button id="start" <%= open?'':'disabled' %>>Iniciar pedido →</button>
+    <div id="modes" hidden>
+      <h2>Onde vai comer?</h2><button data-mode="Comer aqui">Comer aqui</button> <button
+        data-mode="Levar">Levar</button>
+    </div>
+  </section><% } %>
+  <% if(!open&&!preview){ %><p class="notice">Recebimento de pedidos fechado.</p><% } %><section id="browse"
+    <%= !table&&!preview?'hidden':'' %>><span class="eyebrow">CARDÁPIO DIGITAL</span>
+    <h1>Nosso cardápio</h1>
+    <nav class="tabs"><% for(const c of categories){ %><a href="#cat-<%= c.id %>"><%= c.name %></a><% } %></nav>
+    <% for(const c of categories){ %><section id="cat-<%= c.id %>">
+      <h2><%= c.name %></h2>
+      <div class="grid"><% for(const p of products.filter(x=>x.category_id===c.id)){ %><button class="product"
+          data-product="<%= p.id %>" <%= open||preview?'':'disabled' %>><% if(p.image){ %><img loading="lazy"
+            src="/img/<%= p.image %>" alt=""><% } %><div>
+            <h3><%= p.name %></h3>
+            <p><%= p.description %></p><% if(p.promo!=null){ %><del><%= money(p.price) %></del><% } %>
+            <b><%= money(p.promo??p.price) %></b>　＋
+          </div></button><% } %></div>
+    </section><% } %><button id="bag" class="cartbar"></button>
+  </section>
+  <dialog id="dialog"><button class="quiet" id="close">Fechar ×</button>
+    <div id="content"></div>
+  </dialog>
+  <section class="panel kiosk" id="done" hidden></section>
+</main>
+<script src="/assets/cart.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,92 @@
+<%- include('head',{title:'Minha loja'}) %><%- include('nav') %><main>
+  <div class="heading">
+    <div><span class="eyebrow">PAINEL DO RESTAURANTE</span>
+      <h1><%= store.name %></h1>
+      <p>
+        <%= store.published?'Cardápio publicado':'Comece por uma categoria e um produto. Depois, publique em Configurações.' %>
+      </p>
+    </div><a class="outline" href="/previa">Prévia do cardápio ↗</a>
+  </div>
+  <nav class="tabs">
+    <% for(const [key,label] of Object.entries({categorias:'Categorias',produtos:'Produtos',mesas:'Mesas e QR',equipe:'Equipe',config:'Configurações'})){ %><a
+      href="#<%= key %>"><%= label %></a><% } %></nav>
+  <section id="categorias" class="panel">
+    <h2>Categorias</h2><% for(const c of [...categories,{}]){ %><form action="/painel/loja/categorias" method="post"
+      class="row"><%- include('csrf') %><input type="hidden" name="id" value="<%= c.id %>"><label>Nome<input required
+          name="name" value="<%= c.name %>" placeholder="Nova categoria"></label><label>Ordem<input type="number"
+          min="0" required name="position"
+          value="<%= c.position??0 %>"></label><button><%= c.id?'Salvar':'Criar categoria' %></button></form><% } %>
+  </section>
+  <section id="produtos" class="panel">
+    <h2>Produtos</h2><% if(!categories.length){ %><p>Crie uma categoria para cadastrar produtos.</p>
+    <% }else{ for(const p of [{},...products]){ %><details>
+      <summary>
+        <%= p.id?p.name+' · '+money(p.promo??p.price)+' · '+(p.available?'Disponível':'Pausado'):'＋ Cadastrar produto' %>
+      </summary>
+      <form action="/painel/loja/produtos" method="post" enctype="multipart/form-data"><%- include('csrf') %><input
+          type="hidden" name="id" value="<%= p.id %>"><label>Nome<input name="name" required
+            value="<%= p.name %>"></label><label>Categoria<select name="category"><% for(const c of categories){ %>
+            <option value="<%= c.id %>" <%= c.id===p.category_id?'selected':'' %>><%= c.name %></option>
+            <% } %></select></label><label>Descrição<textarea name="description"
+            maxlength="600"><%= p.description %></textarea></label>
+        <div class="row"><label>Preço (R$)<input required name="price" inputmode="decimal"
+              value="<%= p.price!=null?(p.price/100).toFixed(2):'' %>"></label><label>Promoção (R$)<input name="promo"
+              inputmode="decimal" value="<%= p.promo!=null?(p.promo/100).toFixed(2):'' %>"></label></div><label>Foto até
+          5 MB<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Grupos de
+          opções<textarea name="groups" data-groups="<%= JSON.stringify(p.id?json(p.groups_json):[]) %>"
+            placeholder="Bebida | 1 | 1 | Suco=0; Água=0"><%= p.id?json(p.groups_json).map(g=>[g.name,g.min,g.max,g.options.map(o=>o.name+'='+ (o.price/100).toFixed(2)).join('; ')].join(' | ')).join('\n'):'' %></textarea></label><small>Um
+          grupo por linha. Use nome | mínimo | máximo | opção=preço; opção=preço.</small><button>Salvar produto</button>
+      </form>
+    </details><% if(p.id){ %><form action="/painel/loja/disponibilidade" method="post"><%- include('csrf') %><input
+        type="hidden" name="id" value="<%= p.id %>"><button class="quiet"><%= p.available?'Pausar':'Disponibilizar' %>
+        <%= p.name %></button></form><% } } } %>
+  </section>
+  <section id="mesas" class="panel">
+    <h2>Mesas e balcão</h2><a href="/l/<%= store.slug %>">Abrir tablet do balcão
+      ↗</a><% for(const t of [...tables,{}]){ %><form class="row" action="/painel/loja/mesas" method="post">
+      <%- include('csrf') %><input name="id" type="hidden" value="<%= t.id %>"><label>Mesa<input name="name" required
+          value="<%= t.name %>"
+          placeholder="Mesa 1"></label><button><%= t.id?'Salvar':'Criar mesa' %></button><% if(t.id){ %><a
+        class="outline" href="/painel/qr/<%= t.id %>">Baixar QR Code</a><a href="/m/<%= t.token %>">Abrir
+        mesa</a><% } %></form><% } %>
+  </section>
+  <section class="panel" id="equipe">
+    <h2>Equipe</h2><% for(const u of team){ %><div class="row">
+      <p><strong><%= u.name %></strong> · <%= u.role %> · <%= u.email %></p><% if(u.role!=='dono'){ %><form
+        action="/painel/loja/remover-acesso" method="post"><%- include('csrf') %><input name="id" type="hidden"
+          value="<%= u.id %>"><button class="quiet">Remover acesso</button></form><% } %>
+    </div><% } %><details>
+      <summary>＋ Cadastrar funcionário</summary>
+      <form action="/painel/loja/equipe" method="post"><%- include('csrf') %><label>Nome<input required
+            name="name"></label><label>E-mail<input required type="email" name="email"></label><label>Senha
+          inicial<input required type="password" minlength="10" name="password"></label><label>Perfil<select
+            name="role">
+            <option>caixa</option>
+            <option>cozinha</option>
+          </select></label><button>Criar acesso</button></form>
+    </details>
+  </section>
+  <section id="config" class="panel">
+    <h2>Configurações</h2>
+    <form action="/painel/loja/config" method="post" enctype="multipart/form-data"><%- include('csrf') %><label>Nome da
+        loja<input required name="name" value="<%= store.name %>"></label><label>Endereço curto<input required
+          name="slug" value="<%= store.slug %>"></label><label>Logo até 5 MB<input type="file" name="image"
+          accept="image/jpeg,image/png,image/webp"></label><label>Fuso horário<input required name="zone"
+          value="<%= store.zone %>"></label>
+      <div class="row">
+        <% for(const [key,title] of [['opens','Abertura diária'],['closes','Fechamento diário']]){ %><label><%= title %><input
+            type="time" required name="<%= key %>" value="<%= store[key].slice(0,5) %>"></label><% } %></div>
+      <small>Horários iguais permitem atendimento 24
+        horas.</small><% for(const [key,title] of [['tables_enabled','Aceitar pedidos de mesa'],['kiosk_enabled','Aceitar pedidos do balcão'],['taking','Recebimento aberto'],['published','Publicar cardápio']]){ %><label
+        class="check"><input type="checkbox" name="<%= key %>"
+          <%= store[key]?'checked':'' %>><%= title %></label><% } for(const [key,title] of [['table_pay','Pagamento na mesa'],['kiosk_pay','Pagamento no balcão']]){ %><label><%= title %><select
+          name="<%= key %>"><% for(const v of ['antes','depois']){ %><option <%= store[key]===v?'selected':'' %>
+            value="<%= v %>">Pagar <%= v %> do preparo</option><% } %></select></label><% } %><button>Salvar
+        configurações</button>
+    </form>
+  </section>
+</main>
+<script defer src="/assets/options.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,14 @@
+<%- include('head',{title:'Acompanhar pedido'}) %><main class="small">
+  <section class="panel"><span class="eyebrow"><%= o.name %> · <%= o.origin %></span>
+    <h1>Pedido #<%= o.id %></h1>
+    <p><%= date(o.created,o.zone) %> · <%= money(o.total) %></p>
+    <p>Etapa <strong><%= o.stage %></strong></p>
+    <p>Pagamento <strong><%= o.payment %></strong></p>
+    <p>
+      <%= o.stage==='aguarda caixa'?'Pague no caixa e informe o pedido nº '+o.id:o.stage==='pronto'?'Seu pedido está pronto. Procure a equipe.':o.stage==='cancelado'?'Pedido cancelado. Fale com o caixa.':o.stage==='entregue'?'Pedido entregue.':'Acompanhe aqui o andamento do preparo.' %>
+    </p><a class="outline" href="">Atualizar acompanhamento</a>
+  </section>
+</main>
+</body>
+
+</html>

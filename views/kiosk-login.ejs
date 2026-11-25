@@ -1,0 +1,11 @@
+<%- include('head',{title:'Preparar tablet'}) %>
+<main class="small panel">
+  <span class="eyebrow"><%= store.name %></span>
+  <h1>Preparar tablet do balcão</h1>
+  <p>Este navegador está conectado como <%= user.name %>. Encerre o acesso da equipe antes de entregar o tablet aos clientes.</p>
+  <form method="post" action="<%= base %>/iniciar">
+    <%- include('csrf') %>
+    <button>Encerrar acesso e abrir balcão</button>
+  </form>
+</main>
+</body></html>
