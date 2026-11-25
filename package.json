@@ -2,13 +2,13 @@
   "name": "mesa-aberta",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "engines": {
     "node": "24.x"
   },
   "scripts": {
-    "start": "node hostinger.cjs",
-    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "dev": "node --watch app.mjs",
     "migrate": "node scripts/manage.js migrate",
     "admin": "node scripts/manage.js admin",
     "recover": "node scripts/manage.js recover",
