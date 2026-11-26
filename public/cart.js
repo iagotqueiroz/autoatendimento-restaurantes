@@ -4,13 +4,21 @@ const by = (id) => document.getElementById(id),
   dialog = by('dialog'),
   content = by('content')
 const kiosk = menu.dataset.kiosk === 'true',
+  table = menu.dataset.table === 'true',
   preview = menu.dataset.preview === 'true',
-  key = 'mesa.cart:' + menu.dataset.base
+  key = 'mesa.cart:' + menu.dataset.base,
+  visitKey = 'mesa.visit:' + menu.dataset.base
 const uuid = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(18)), (x) =>
     x.toString(16).padStart(2, '0'),
   ).join('')
-const empty = () => ({ items: [], attempt: uuid(), mode: '', pending: false })
+const empty = () => ({
+  items: [],
+  attempt: uuid(),
+  mode: '',
+  pending: false,
+  visit: table ? localStorage.getItem(visitKey) || '' : '',
+})
 let cart = JSON.parse(localStorage.getItem(key) || 'null') || empty()
 const money = (n) => (n / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const total = () => cart.items.reduce((n, i) => n + i.quantity * i.unit, 0)
@@ -181,10 +189,11 @@ function review(message = '') {
             )
           }
           localStorage.removeItem(key)
+          if (table && result.visit) localStorage.setItem(visitKey, result.visit)
           cart = empty()
           dialog.close()
           if (!kiosk) {
-            location.assign('/acompanhar/' + result.token)
+            location.assign(result.visit ? '/conta/' + result.visit : '/acompanhar/' + result.token)
             return
           }
           by('browse').hidden = true

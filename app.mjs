@@ -254,6 +254,40 @@ async function start() {
       orderAgain: o.table_token ? '/m/' + o.table_token : '/l/' + o.slug,
     })
   })
+  async function visitAccount(token) {
+    const visit = await one(
+      'SELECT v.*,s.name,s.slug,s.zone,t.name AS table_name,t.token AS table_token FROM visits v JOIN stores s ON s.id=v.store_id LEFT JOIN tables_rest t ON t.id=v.table_id WHERE v.token=?',
+      [token],
+    )
+    check(visit, 'Conta de atendimento não encontrada.', 404)
+    const orders = await query('SELECT * FROM orders WHERE visit_id=? ORDER BY id', [visit.id])
+    if (orders.length) {
+      const placeholders = orders.map(() => '?').join(',')
+      const items = await query(
+        `SELECT * FROM items WHERE order_id IN (${placeholders}) ORDER BY id`,
+        orders.map((order) => order.id),
+      )
+      for (const order of orders) order.items = items.filter((item) => item.order_id === order.id)
+    }
+    const valid = orders.filter((order) => order.stage !== 'cancelado')
+    const total = valid.reduce((sum, order) => sum + order.total, 0)
+    const paid = valid
+      .filter((order) => order.payment === 'pago')
+      .reduce((sum, order) => sum + order.total, 0)
+    return {
+      visit,
+      orders,
+      total,
+      paid,
+      due: Math.max(0, total - paid),
+      orderAgain: visit.table_token ? '/m/' + visit.table_token : '/l/' + visit.slug,
+    }
+  }
+  app.get('/conta/:token', async (req, res) => {
+    const account = await visitAccount(req.params.token)
+    if (req.query.partial === '1') return res.render('visit-content', { account, json })
+    res.render('visit', { account, json })
+  })
   app.use((req, res) => res.status(404).render('error', { message: 'Página não encontrada.' }))
   app.use((err, req, res, next) => {
     const status =

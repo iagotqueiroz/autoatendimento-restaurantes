@@ -1,7 +1,7 @@
 <%- include('head',{title:store.name}) %><header class="menu-header"><div class="menu-brand"><% if(store.logo){ %><img class="menu-logo" alt=""
       src="/img/<%= store.logo %>"><% }else{ %><span class="menu-logo-fallback" aria-hidden="true"><%= store.name.charAt(0).toUpperCase() %></span><% } %><div><small>Cardápio digital</small><strong><%= store.name %></strong></div></div><span
     class="status-chip <%= open||preview?'status-live':'status-paused' %>"><span class="status-dot"></span><%= preview?'Modo prévia':open?(table?table.name:'Balcão'):'Pedidos pausados' %></span></header>
-<main class="menu-main" id="menu" data-base="<%= base %>" data-kiosk="<%= !table&&!preview %>" data-preview="<%= preview %>"
+<main class="menu-main" id="menu" data-base="<%= base %>" data-kiosk="<%= !table&&!preview %>" data-table="<%= Boolean(table) %>" data-preview="<%= preview %>"
   data-products="<%= JSON.stringify(products.map(({id,name,description,groups,price,promo,image})=>({id,name,description,groups,price,promo,image}))) %>">
   <% if(!table&&!preview){ %><section class="panel kiosk" id="welcome"><span class="eyebrow">AUTOATENDIMENTO</span>
     <h1><%= store.name %></h1><button id="start" <%= open?'':'disabled' %>>Iniciar pedido →</button>

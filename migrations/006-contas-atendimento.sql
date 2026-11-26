@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS visits (
+ id INT PRIMARY KEY AUTO_INCREMENT,
+ store_id INT NOT NULL,
+ table_id INT,
+ token CHAR(64) NOT NULL UNIQUE,
+ channel VARCHAR(20) NOT NULL,
+ mode VARCHAR(20) NOT NULL,
+ status VARCHAR(20) NOT NULL DEFAULT 'aberta',
+ created DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP()),
+ updated DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP()),
+ INDEX(store_id,status),
+ FOREIGN KEY(store_id) REFERENCES stores(id),
+ FOREIGN KEY(table_id) REFERENCES tables_rest(id)
+) ENGINE=InnoDB;
+ALTER TABLE orders ADD visit_id INT NULL;
+ALTER TABLE orders ADD INDEX(visit_id);
+ALTER TABLE orders ADD FOREIGN KEY(visit_id) REFERENCES visits(id);

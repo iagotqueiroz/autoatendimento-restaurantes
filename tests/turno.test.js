@@ -185,6 +185,7 @@ test('04 · QR, clique simultâneo e repetição depois da perda da resposta', a
   const values = await Promise.all(results.map((r) => r.json()))
   later = values[0].id
   assert.equal(later, values[1].id)
+  assert.match(values[0].visit, /^[a-f0-9]{64}$/)
   assert.equal((await (await submit(menu, i)).json()).id, later)
   const o = await one('SELECT * FROM orders WHERE id=?', [later])
   assert.equal(o.table_id, table.id)
@@ -203,6 +204,22 @@ test('04 · QR, clique simultâneo e repetição depois da perda da resposta', a
   )
   assert.equal((await client.ctx.get('/acompanhar/' + later)).status(), 404)
   assert.equal((await client.ctx.get('/acompanhar/' + values[0].token)).status(), 200)
+  assert.equal((await client.ctx.get('/conta/' + values[0].visit)).status(), 200)
+  const otherTableToken = randomUUID()
+  await query('INSERT INTO tables_rest(store_id,name,token) VALUES(?,?,?)', [
+    store,
+    'Mesa de segurança',
+    otherTableToken,
+  ])
+  assert.equal(
+    (
+      await submit('/m/' + otherTableToken, {
+        ...basket(),
+        visit: values[0].visit,
+      })
+    ).status(),
+    409,
+  )
 })
 test('05 · Antecipado, baixa concorrente, fila da cozinha e devolução', async () => {
   const r = await submit('/l/' + A.slug, basket())
@@ -234,6 +251,15 @@ test('06 · Preparo, entrega e pagamento posterior independentes', async () => {
     assert.equal((await act(later, stage)).status(), 302)
   assert.equal((await one('SELECT payment FROM orders WHERE id=?', [later])).payment, 'pendente')
   assert.equal((await act(later, 'pagar', { method: 'Cartão' })).status(), 302)
+  assert.equal(
+    (
+      await one(
+        'SELECT v.status FROM visits v JOIN orders o ON o.visit_id=v.id WHERE o.id=?',
+        [later],
+      )
+    ).status,
+    'encerrada',
+  )
 })
 test('07 · Fechamento, suspensão, vencimento e item pausado', async () => {
   for (const [column, value, original] of [
@@ -357,7 +383,7 @@ test('10 · Caixa e cozinha com logins próprios e suspensão administrativa', a
   assert.equal((await action(auth.cozinha, 'aceito')).status(), 302)
 })
 
-test('11 · Celular recupera o pedido após perder a resposta do servidor', async () => {
+test('11 · Celular recupera envio e reúne novos pedidos na mesma conta', async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined })
   try {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
@@ -377,21 +403,45 @@ test('11 · Celular recupera o pedido após perder a resposta do servidor', asyn
     await page.unroute(path)
     await page.reload()
     await page.getByText('Consultar ou repetir envio').click()
-    await page.waitForURL('**/acompanhar/*')
-    assert.equal(await page.locator('h1').innerText(), 'Pedido recebido!')
-    assert.match(await page.locator('.receipt-hero').innerText(), new RegExp('PEDIDO #' + firstId))
-    await page.locator('.receipt-item img').waitFor()
+    await page.waitForURL('**/conta/*')
+    const accountUrl = page.url()
+    assert.equal(await page.locator('h1').innerText(), 'Mesa 5')
+    assert.match(
+      await page.locator(`[data-order-id="${firstId}"]`).innerText(),
+      new RegExp('PEDIDO #' + firstId),
+    )
+    await page.locator(`[data-order-id="${firstId}"] img`).waitFor()
     assert.equal(
-      await page.getByRole('link', { name: 'Pedir mais itens' }).getAttribute('href'),
+      await page.getByRole('link', { name: 'Adicionar mais itens' }).getAttribute('href'),
       menu,
+    )
+    await page.getByRole('link', { name: 'Adicionar mais itens' }).click()
+    await page.locator('[data-product]').click()
+    await page.getByRole('button', { name: /Adicionar/ }).click()
+    await page.locator('#bag').click()
+    await page.getByText('Confirmar pedido', { exact: true }).click()
+    await page.waitForURL('**/conta/*')
+    assert.equal(page.url(), accountUrl)
+    await page.getByText('2 pedidos realizados').waitFor()
+    assert.equal(await page.locator('[data-order-id]').count(), 2)
+    const accountTotal = await one(
+      'SELECT SUM(total) AS total FROM orders WHERE visit_id=(SELECT visit_id FROM orders WHERE id=?)',
+      [firstId],
+    )
+    assert.equal(
+      await page.locator('.visit-totals strong').first().innerText(),
+      (accountTotal.total / 100).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }),
     )
     assert.equal((await act(firstId, 'aceito')).status(), 302)
     await page
-      .locator('#order-stage')
+      .locator(`[data-order-id="${firstId}"] [data-order-stage]`)
       .getByText('aceito', { exact: true })
       .waitFor({ timeout: 10000 })
     const orders = await query('SELECT id FROM orders WHERE store_id=? AND id>=?', [store, firstId])
-    assert.equal(orders.length, 1)
+    assert.equal(orders.length, 2)
   } finally {
     await browser.close()
   }

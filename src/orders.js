@@ -31,7 +31,7 @@ export async function order(storeId, tableToken, input) {
       : null
     check(!tableToken || table, 'Mesa inválida.', 404)
     const old = await one(
-      'SELECT id,token,table_id,policy FROM orders WHERE store_id=? AND attempt=?',
+      'SELECT o.id,o.token,o.table_id,o.policy,v.token AS visit FROM orders o LEFT JOIN visits v ON v.id=o.visit_id WHERE o.store_id=? AND o.attempt=?',
       [storeId, input.attempt],
       db,
     )
@@ -90,14 +90,40 @@ export async function order(storeId, tableToken, input) {
       check(total <= 2147483647, 'Total acima do limite.')
       lines.push([p.id, p.image, p.name, base, JSON.stringify(extras), quantity, note])
     }
+    let visit = null
+    if (table) {
+      if (input.visit) {
+        check(
+          typeof input.visit === 'string' && /^[a-f0-9]{64}$/.test(input.visit),
+          'Conta da mesa inválida.',
+        )
+        visit = await one(
+          'SELECT * FROM visits WHERE token=? AND store_id=? FOR UPDATE',
+          [input.visit, storeId],
+          db,
+        )
+        check(visit?.table_id === table.id, 'Esta conta não pertence à mesa informada.', 409)
+        if (visit.status !== 'aberta') visit = null
+      }
+      if (!visit) {
+        const visitToken = randomBytes(32).toString('hex')
+        const result = await query(
+          "INSERT INTO visits(store_id,table_id,token,channel,mode) VALUES(?,?,?,'mesa','Mesa')",
+          [storeId, table.id, visitToken],
+          db,
+        )
+        visit = { id: result.insertId, token: visitToken }
+      }
+    }
     const policy = table ? store.table_pay : store.kiosk_pay,
       token = randomBytes(32).toString('hex')
     const r = await query(
-      'INSERT INTO orders(store_id,attempt,token,table_id,origin,mode,policy,total,stage) VALUES(?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO orders(store_id,attempt,token,visit_id,table_id,origin,mode,policy,total,stage) VALUES(?,?,?,?,?,?,?,?,?,?)',
       [
         storeId,
         input.attempt,
         token,
+        visit?.id ?? null,
         table?.id ?? null,
         table?.name ?? 'Balcão',
         table ? 'Mesa' : input.mode,
@@ -118,7 +144,9 @@ export async function order(storeId, tableToken, input) {
       [r.insertId],
       db,
     )
-    return { id: r.insertId, token, policy }
+    if (visit)
+      await query('UPDATE visits SET updated=UTC_TIMESTAMP() WHERE id=?', [visit.id], db)
+    return { id: r.insertId, token, policy, visit: visit?.token ?? null }
   })
 }
 export async function change(user, id, action, data) {
@@ -171,5 +199,19 @@ export async function change(user, id, action, data) {
       [id, user.name, action, reason],
       db,
     )
+    if (o.visit_id) {
+      const pending = await one(
+        "SELECT COUNT(*) AS total FROM orders WHERE visit_id=? AND stage<>'cancelado' AND (stage<>'entregue' OR payment<>'pago')",
+        [o.visit_id],
+        db,
+      )
+      if (Number(pending.total) === 0)
+        await query(
+          "UPDATE visits SET status='encerrada',updated=UTC_TIMESTAMP() WHERE id=?",
+          [o.visit_id],
+          db,
+        )
+      else await query('UPDATE visits SET updated=UTC_TIMESTAMP() WHERE id=?', [o.visit_id], db)
+    }
   })
 }

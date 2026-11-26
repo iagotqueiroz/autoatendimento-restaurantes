@@ -1,0 +1,14 @@
+<%- include('head',{title:'Conta da mesa'}) %>
+<header class="menu-header">
+  <a class="menu-brand receipt-brand" href="<%= account.orderAgain %>">
+    <span class="menu-logo-fallback" aria-hidden="true"><%= account.visit.name.charAt(0).toUpperCase() %></span>
+    <div><small>Sua conta em</small><strong><%= account.visit.name %></strong></div>
+  </a>
+  <span class="status-chip status-live"><span class="status-dot"></span><%= account.visit.table_name||'Balcão' %></span>
+</header>
+<main class="visit-main" id="visit-account" data-refresh-url="/conta/<%= account.visit.token %>?partial=1">
+  <div id="visit-live"><%- include('visit-content',{account,json}) %></div>
+</main>
+<script defer src="/assets/visit.js"></script>
+</body>
+</html>

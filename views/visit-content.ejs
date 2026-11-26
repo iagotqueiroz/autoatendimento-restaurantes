@@ -1,0 +1,25 @@
+<section class="visit-hero">
+  <div><span class="eyebrow">CONTA DO ATENDIMENTO</span><h1><%= account.visit.table_name||'Seu pedido' %></h1><p><%= account.orders.length %> <%= account.orders.length===1?'pedido realizado':'pedidos realizados' %> nesta conta.</p></div>
+  <div class="visit-totals"><span><small>Consumo total</small><strong><%= money(account.total) %></strong></span><span class="<%= account.due?'due':'paid' %>"><small>Saldo pendente</small><strong><%= money(account.due) %></strong></span></div>
+</section>
+
+<div class="visit-toolbar"><span class="live-update"><i></i>Atualização automática</span><a class="button-link" href="<%= account.orderAgain %>">Adicionar mais itens</a></div>
+
+<section class="visit-orders" aria-label="Pedidos desta conta">
+  <% for(const order of account.orders){ %>
+    <article class="panel visit-order" data-order-id="<%= order.id %>">
+      <header><div><span class="eyebrow">PEDIDO #<%= order.id %></span><h2><%= order.stage==='pronto'?'Pronto para retirar':order.stage==='em preparo'?'Em preparo':order.stage==='entregue'?'Entregue':order.stage==='cancelado'?'Cancelado':'Pedido enviado' %></h2></div><div><span class="status-chip <%= ['cancelado'].includes(order.stage)?'status-paused':['pronto','entregue'].includes(order.stage)?'status-live':'status-draft' %>" data-order-stage><%= order.stage %></span><strong><%= money(order.total) %></strong></div></header>
+      <div class="visit-order-items">
+        <% for(const item of order.items){ const options=json(item.options_json); %>
+          <div class="visit-order-item"><% if(item.image){ %><img src="/img/<%= item.image %>" alt=""><% }else{ %><span aria-hidden="true"><%= item.name.charAt(0).toUpperCase() %></span><% } %><div><strong><%= item.quantity %> × <%= item.name %></strong><% if(options.length){ %><small><%= options.map(option=>option.name).join(' · ') %></small><% } %><% if(item.note){ %><small>Observação: <%= item.note %></small><% } %></div></div>
+        <% } %>
+      </div>
+      <footer><span>Pagamento: <strong><%= order.payment %></strong></span><a href="/acompanhar/<%= order.token %>">Ver detalhes</a></footer>
+    </article>
+  <% } %>
+</section>
+
+<section class="panel visit-payment">
+  <div><span class="eyebrow">PAGAMENTO</span><h2><%= account.due?'Pagamento no atendimento':'Conta paga' %></h2><p><%= account.due?'Por enquanto, finalize o saldo com a equipe. O pagamento online será liberado depois que o restaurante conectar a própria conta de recebimento.':'Não há saldo pendente nesta conta.' %></p></div>
+  <div class="visit-payment-value"><small>Saldo atual</small><strong><%= money(account.due) %></strong><button disabled title="Disponível após o restaurante conectar a conta de recebimento">Pagar online em breve</button></div>
+</section>
