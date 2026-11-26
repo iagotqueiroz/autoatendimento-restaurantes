@@ -74,8 +74,10 @@ A migração termina com **Banco atualizado**. O comando `admin` pede o e-mail d
 
 | Uso                     | Endereço no computador                          | Acesso                                            |
 | ----------------------- | ----------------------------------------------- | ------------------------------------------------- |
-| Cadastro do restaurante | http://localhost:3000/cadastro                  | Cria dono e loja com piloto de 14 dias            |
+| Site público            | http://localhost:3000                           | Apresentação comercial, recursos e preço          |
+| Cadastro do restaurante | http://localhost:3000/cadastro                  | Cria dono e loja aguardando pagamento             |
 | Login                   | http://localhost:3000/login                     | Encaminha ao painel do perfil                     |
+| Assinatura              | http://localhost:3000/assinar                   | Pagamento e situação do acesso                    |
 | Plataforma              | http://localhost:3000/painel/plataforma         | Credenciais do comando `admin`                    |
 | Dono                    | http://localhost:3000/painel/loja               | Conta cadastrada ou `dono@casa-do-almoco.example` |
 | Cozinha                 | http://localhost:3000/painel/cozinha            | Dono ou `cozinha@casa-do-almoco.example`          |
@@ -115,6 +117,31 @@ A documentação oficial de implantação da Hostinger lista aplicações Node n
 | Inicialização              | `npm start`, que executa `node server.js`                   |
 | Porta                      | `process.env.PORT`                                          |
 
+### Configurar cobrança com Mercado Pago
+
+A primeira integração usa o **Checkout Pro** do Mercado Pago. O cliente escolhe cartão ou Pix no ambiente do próprio Mercado Pago; a aplicação não recebe o número do cartão. Quando o pagamento é aprovado, o webhook confere o pagamento na API oficial e libera um mês de acesso. Uma notificação repetida não duplica a renovação.
+
+Esta etapa oferece **renovação mensal manual**: no vencimento, o restaurante faz um novo Pix ou pagamento por cartão. Débito recorrente automático exige a API de Assinaturas e normalmente usa cartão; Pix recorrente depende das modalidades oferecidas pelo provedor e pelo banco. Começar com Checkout Pro reduz o risco operacional e permite oferecer as duas formas de pagamento desde a primeira versão.
+
+1. Crie ou use uma conta do Mercado Pago em nome da pessoa ou empresa que receberá as mensalidades. No próprio Mercado Pago, conclua a verificação de identidade. Acesse **Seu negócio → Configurações → Dados bancários** para cadastrar a conta para retirada. Esses dados ficam no Mercado Pago, não no código da Mesa Aberta.
+2. Entre em [Mercado Pago Developers](https://www.mercadopago.com.br/developers/panel/app), abra **Suas integrações** e crie uma aplicação para **Pagamentos online → Checkout Pro**. Use o domínio público da plataforma, não o endereço do cardápio de uma loja.
+3. Na aplicação criada, abra **Credenciais de produção** e copie o **Access Token**. Ele é secreto: não envie por mensagem, não coloque no GitHub e não use a chave pública no lugar dele.
+4. Na Hostinger, abra a mesma tela em que configurou `DB_HOST` e `SESSION_SECRET`. Adicione:
+
+```text
+PLAN_MONTHLY_CENTS=8990
+MERCADO_PAGO_ACCESS_TOKEN=APP_USR-cole-aqui-o-token-de-producao
+```
+
+`8990` significa R$ 89,90. Informe sempre centavos, sem ponto ou vírgula. Mantenha também `PUBLIC_URL=https://seu-dominio.com.br`, com o domínio real e HTTPS.
+
+5. Faça uma nova implantação. As migrações `003-cobranca.sql` e `004-pagamento-creditado.sql` criam o histórico de checkouts e pagamentos. Com `MIGRATE_ON_START=true`, elas são aplicadas automaticamente no início.
+6. Cadastre uma nova loja. Ela deve abrir a página **Assinatura**, sem permitir acesso ao painel. Clique em **Pagar com cartão ou Pix**. O Mercado Pago recebe a cobrança e envia a confirmação para `https://seu-dominio.com.br/webhooks/mercado-pago`.
+7. Depois de um pagamento aprovado, confira se a tela mostra **Assinatura ativa** e a data de vencimento. No painel administrativo, a loja também aparecerá como `ativa`. Faça primeiro um pagamento real de baixo risco com uma conta de teste separada ou use as credenciais e compradores de teste documentados pelo Mercado Pago.
+8. Para receber o dinheiro no banco, acompanhe **Atividade** e **Seu dinheiro** no Mercado Pago. O prazo, tarifa e disponibilidade para transferência são definidos pela sua conta e pelo meio de pagamento; não é necessário cadastrar banco na Hostinger.
+
+Em caso de checkout indisponível, confirme se o token começa com o prefixo esperado pelo Mercado Pago, se `PUBLIC_URL` está correto e se o domínio responde com HTTPS. Nunca registre o token em logs ou capturas de tela.
+
 **Terminal do servidor**, quando seu plano disponibilizar Node e as variáveis da aplicação nesse terminal. Entre no diretório da implantação que contém `package.json`. Para migração manual e administração:
 
 ```sh
@@ -128,7 +155,7 @@ Se o terminal do plano não oferecer Node, `MIGRATE_ON_START=true` já executa a
 
 ## C. Operar o primeiro turno
 
-1. **Abrir a loja.** O cadastro cria um piloto com vencimento. Em **Minha loja**, crie uma categoria e sua ordem. Em **Produtos**, informe nome, descrição, foto e preço. A promoção opcional passa a ser o preço base. Use **Pausar** para um item esgotado.
+1. **Abrir a loja.** O cadastro cria uma loja aguardando a assinatura. Depois da confirmação do pagamento, em **Minha loja**, crie uma categoria e sua ordem. Em **Produtos**, informe nome, descrição, foto e preço. A promoção opcional passa a ser o preço base. Use **Pausar** para um item esgotado.
 2. **Configurar opções.** No produto, clique em **Adicionar grupo**. Para uma bebida obrigatória, escreva **Bebida**, use mínimo 1 e máximo 1, e cadastre **Água** por R$ 0,00 e **Suco** por R$ 3,00. Para até dois adicionais, crie outro grupo com mínimo 0 e máximo 2. Cada opção pertence ao seu produto.
 3. **Publicar.** Confira a prévia. Em **Configurações**, ajuste nome, logo, endereço curto, horários diários, fuso e canais. Horários iguais abrem 24 h; um fechamento anterior à abertura atravessa a meia-noite. Habilite recebimento e publicação. Escolha pagamento antecipado ou posterior em cada canal.
 4. **Preparar os pontos de atendimento.** Crie a Mesa 1, baixe o PNG, imprima sem cortar a margem branca e teste a leitura. Em **Equipe**, crie os acessos de caixa e cozinha. Abra o link do balcão no tablet e deixe o painel da cozinha aberto no dispositivo da equipe. Toque em **Ativar som**. A fila consulta o servidor a cada cinco segundos, informa a última atualização e tenta novamente após uma queda.
@@ -218,7 +245,8 @@ O operador autorizado da plataforma deve verificar a identidade da pessoa. No te
 | --------------------------------- | -------------------------------------------------------------------- |
 | `server.js`                       | Ponto de entrada CommonJS compatível com a Hostinger                 |
 | `app.mjs`                         | Inicialização, sessão, proteção CSRF, login e rotas públicas         |
-| `src/accounts.js`                 | Cadastro transacional, hash, validade inicial do piloto              |
+| `src/accounts.js`                 | Cadastro transacional, senha e situação inicial da loja              |
+| `src/billing.js`                  | Checkout, confirmação do pagamento e liberação da assinatura         |
 | `src/private.js`                  | Permissões e operações de dono, equipe, plataforma e QR              |
 | `src/catalog.js`                  | Validação de imagens, preços de produtos e opções                    |
 | `src/orders.js`                   | Horário, assinatura, total, idempotência, preparo, baixa e devolução |

@@ -200,6 +200,29 @@ function review(message = '') {
 document
   .querySelectorAll('[data-product]')
   .forEach((b) => (b.onclick = () => detail(Number(b.dataset.product))))
+const search = by('menu-search')
+if (search) {
+  const normalize = (value) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+  search.addEventListener('input', () => {
+    const term = normalize(search.value.trim())
+    let visible = 0
+    document.querySelectorAll('.menu-category').forEach((category) => {
+      let categoryVisible = 0
+      category.querySelectorAll('[data-product]').forEach((product) => {
+        const match = !term || normalize(product.textContent).includes(term)
+        product.hidden = !match
+        if (match) categoryVisible++
+      })
+      category.hidden = categoryVisible === 0
+      visible += categoryVisible
+    })
+    by('search-empty').hidden = visible !== 0
+  })
+}
 by('bag').onclick = () => review()
 if (kiosk) {
   function browse() {

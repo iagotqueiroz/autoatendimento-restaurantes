@@ -69,7 +69,11 @@ async function signup(tag) {
     },
   })
   assert.equal(response.status(), 200)
-  assert.match(await response.text(), /Minha loja/)
+  assert.match(await response.text(), /Ative sua loja para continuar/)
+  await query("UPDATE stores SET subscription='teste',expires='2099-01-01' WHERE slug=?", [slug])
+  const panel = await ctx.get('/painel/loja')
+  assert.equal(panel.status(), 200)
+  assert.match(await panel.text(), /Minha loja/)
   return { ctx, slug, token: await csrf(ctx, '/painel/loja') }
 }
 const ownerPost = (account, path, data) =>
@@ -336,6 +340,9 @@ test('10 · Caixa e cozinha com logins próprios e suspensão administrativa', a
     })
   assert.equal((await update('suspensa')).status(), 200)
   assert.equal((await submit(menu, { ...input, attempt: randomUUID() })).status(), 409)
+  assert.equal((await auth.cozinha.ctx.get('/painel/caixa')).status(), 402)
+  assert.equal((await auth.caixa.ctx.get('/painel/loja')).status(), 402)
+  assert.equal((await update('ativa')).status(), 200)
   assert.equal((await auth.cozinha.ctx.get('/painel/caixa')).status(), 403)
   assert.equal((await auth.caixa.ctx.get('/painel/loja')).status(), 403)
   const action = (u, step) =>
@@ -347,7 +354,6 @@ test('10 · Caixa e cozinha com logins próprios e suspensão administrativa', a
   assert.equal((await action(auth.caixa, 'aceito')).status(), 403)
   assert.equal((await action(auth.caixa, 'pagar')).status(), 302)
   assert.equal((await action(auth.cozinha, 'aceito')).status(), 302)
-  assert.equal((await update('ativa')).status(), 200)
 })
 
 test('11 · Celular recupera o pedido após perder a resposta do servidor', async () => {
@@ -398,10 +404,11 @@ test('13 · Dono configura grupo de adicionais pelo formulário no navegador', a
       storageState: await owner.ctx.storageState(),
     })
     const page = await ctx.newPage()
-    await page.goto('/painel/loja')
+    await page.goto('/painel/loja/categorias')
     const cat = page.locator('#categorias form').last()
     await cat.getByLabel('Nova categoria').fill('Sobremesas')
     await cat.getByText('Criar categoria').click()
+    await page.goto('/painel/loja/produtos')
     await page.getByText('Cadastrar produto', { exact: false }).click()
     const form = page.locator('#produtos details form').first()
     await form.getByLabel('Nome do produto', { exact: true }).fill('Sorvete')
@@ -412,6 +419,7 @@ test('13 · Dono configura grupo de adicionais pelo formulário no navegador', a
     await form.getByLabel('Adicional (R$)').fill('1,50')
     await form.getByText('Cadastrar produto').click()
     await page.getByRole('heading', { name: 'Sorvete' }).waitFor()
+    await page.goto('/painel/loja')
     await page.getByRole('button', { name: 'Publicar cardápio', exact: true }).click()
     await page.getByText('Cardápio publicado. O link da loja já pode receber visitantes.').waitFor()
     const saved = await one(
@@ -424,5 +432,84 @@ test('13 · Dono configura grupo de adicionais pelo formulário no navegador', a
     assert.equal(saved.published, 1)
   } finally {
     await browser.close()
+  }
+})
+
+test('14 · Landing page e bloqueio até a confirmação do pagamento', async () => {
+  const visitor = await context()
+  const home = await visitor.get('/')
+  assert.equal(home.status(), 200)
+  assert.match(await home.text(), /Menos espera/)
+  assert.match(await home.text(), /R\$\s*89,90/)
+  const slug = 'pagamento-' + suffix
+  const response = await visitor.post('/cadastro', {
+    form: {
+      _csrf: await csrf(visitor),
+      name: 'Pagamento',
+      slug,
+      store: 'Loja aguardando pagamento',
+      email: slug + '@test.example',
+      password: randomUUID(),
+    },
+  })
+  assert.equal(response.status(), 200)
+  assert.match(await response.text(), /Ative sua loja para continuar/)
+  assert.equal(
+    (await one('SELECT subscription FROM stores WHERE slug=?', [slug])).subscription,
+    'pendente',
+  )
+  const blocked = await visitor.get('/painel/loja', { maxRedirects: 0 })
+  assert.equal(blocked.status(), 302)
+  assert.equal(blocked.headers().location, '/assinar')
+})
+
+test('15 · Pagamento em análise libera somente uma mensalidade quando aprovado', async () => {
+  const slug = 'webhook-' + suffix
+  const storeResult = await query(
+    "INSERT INTO stores(name,slug,subscription,expires) VALUES(?,?,'pendente','2099-01-01')",
+    ['Loja do webhook', slug],
+  )
+  const storeId = storeResult.insertId
+  const checkoutId = randomUUID()
+  await query(
+    "INSERT INTO billing_checkouts(id,store_id,provider,status,amount) VALUES(?,?,'mercado_pago','checkout',8990)",
+    [checkoutId, storeId],
+  )
+  process.env.MERCADO_PAGO_ACCESS_TOKEN = 'token-de-teste'
+  const originalFetch = global.fetch
+  const paymentId = String(Date.now())
+  let status = 'pending'
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      id: Number(paymentId),
+      status,
+      currency_id: 'BRL',
+      transaction_amount: 89.9,
+      external_reference: checkoutId,
+      payment_method_id: 'pix',
+      date_approved: status === 'approved' ? '2026-11-26T10:00:00-03:00' : null,
+    }),
+  })
+  try {
+    const { processPayment } = await import('../src/billing.js')
+    await processPayment(paymentId)
+    assert.equal(
+      (await one('SELECT subscription FROM stores WHERE id=?', [storeId])).subscription,
+      'pendente',
+    )
+    status = 'approved'
+    await processPayment(paymentId)
+    await processPayment(paymentId)
+    const saved = await one('SELECT subscription,expires FROM stores WHERE id=?', [storeId])
+    assert.equal(saved.subscription, 'ativa')
+    assert.equal(saved.expires, '2099-02-01')
+    const payments = await query('SELECT status,credited FROM billing_payments WHERE store_id=?', [
+      storeId,
+    ])
+    assert.deepEqual(payments, [{ status: 'approved', credited: 1 }])
+  } finally {
+    global.fetch = originalFetch
+    delete process.env.MERCADO_PAGO_ACCESS_TOKEN
   }
 })

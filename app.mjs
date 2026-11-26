@@ -11,6 +11,7 @@ import { config, one, query, check, money, json } from './src/db.js'
 import { register, email } from './src/accounts.js'
 import { staff } from './src/private.js'
 import { order, accepting } from './src/orders.js'
+import { billing, plan } from './src/billing.js'
 const app = express(),
   prod = process.env.NODE_ENV === 'production'
 check(
@@ -82,7 +83,7 @@ async function start() {
     next()
   })
   app.use((req, res, next) => {
-    if (req.method === 'POST')
+    if (req.method === 'POST' && req.path !== '/webhooks/mercado-pago')
       check(
         (req.get('x-csrf-token') || req.body?._csrf) === req.session.csrf,
         'Sessão expirada. Recarregue a página.',
@@ -95,7 +96,8 @@ async function start() {
     limit: 30,
     message: 'Muitas tentativas. Tente novamente em 15 minutos.',
   })
-  app.get(['/', '/login', '/cadastro'], (req, res) =>
+  app.get('/', (req, res) => res.render('landing', { plan }))
+  app.get(['/login', '/cadastro'], (req, res) =>
     req.user ? res.redirect('/painel') : res.render('auth', { signup: req.path === '/cadastro' }),
   )
   async function login(req, uid) {
@@ -111,7 +113,7 @@ async function start() {
   }
   app.post('/cadastro', limit, async (req, res) => {
     await login(req, await register(req.body))
-    res.redirect('/painel/loja')
+    res.redirect('/assinar')
   })
   app.post('/login', limit, async (req, res) => {
     const u = await one('SELECT * FROM users WHERE email=?', [email(req.body.email)])
@@ -128,6 +130,7 @@ async function start() {
   app.post('/sair', (req, res, next) =>
     req.session.destroy((err) => (err ? next(err) : res.clearCookie('mesa.sid').redirect('/'))),
   )
+  app.use('/', billing)
   app.use('/painel', staff)
   app.get('/img/:id', async (req, res) => {
     const img = await one('SELECT data FROM images WHERE id=?', [req.params.id])

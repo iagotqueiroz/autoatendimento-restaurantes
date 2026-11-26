@@ -1,0 +1,45 @@
+<%- include('head',{title:'Cardápio digital e pedidos sem complicação',description:'Cardápio digital, pedidos por QR Code, cozinha e caixa em uma plataforma simples para restaurantes.'}) %>
+<header class="marketing-header">
+  <a href="/" aria-label="Mesa Aberta"><%- include('brand') %></a>
+  <nav aria-label="Navegação principal">
+    <a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#preco">Preço</a>
+    <% if(user){ %><a class="outline" href="/painel">Abrir painel</a><% }else{ %><a href="/login">Entrar</a><a class="button-link" href="/cadastro">Começar agora</a><% } %>
+  </nav>
+</header>
+<main class="marketing-main">
+  <section class="marketing-hero">
+    <div>
+      <span class="marketing-kicker">FEITO PARA RESTAURANTES QUE QUEREM CRESCER</span>
+      <h1>Menos espera.<br><span>Mais pedidos.</span></h1>
+      <p>Cardápio digital, pedidos por QR Code, cozinha e caixa conectados em uma experiência simples para sua equipe e seus clientes.</p>
+      <div class="marketing-actions"><a class="button-link marketing-cta" href="/cadastro">Criar minha loja</a><a class="outline" href="#como-funciona">Ver como funciona</a></div>
+      <small>Configuração guiada · Cancele quando quiser · Suporte em português</small>
+    </div>
+    <div class="hero-demo" aria-label="Exemplo do fluxo do restaurante">
+      <div class="demo-window"><div class="demo-bar"><i></i><i></i><i></i><span>Minha operação hoje</span></div>
+        <div class="demo-stats"><article><small>Pedidos</small><strong>48</strong><span>+12% hoje</span></article><article><small>Em preparo</small><strong>6</strong><span>Tempo médio 14 min</span></article></div>
+        <div class="demo-order"><span>Pedido #1048</span><strong>2 X-Burger · 1 Suco</strong><b>Em preparo</b></div>
+        <div class="demo-order"><span>Pedido #1049</span><strong>1 Prato executivo</strong><b class="new">Novo pedido</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="trust-row" aria-label="Benefícios"><span>✓ Sem aplicativo para o cliente</span><span>✓ Funciona no celular</span><span>✓ Pix e cartão</span><span>✓ Dados da sua loja protegidos</span></section>
+
+  <section class="marketing-section" id="recursos"><span class="eyebrow">TUDO EM UM SÓ LUGAR</span><h2>Uma operação organizada do salão à cozinha</h2><p class="section-lead">Cada pessoa vê apenas o que precisa. O cliente pede com facilidade e sua equipe acompanha sem confusão.</p>
+    <div class="feature-grid">
+      <article><span>01</span><h3>Cardápio que vende</h3><p>Fotos, adicionais, promoções e produtos pausados em uma navegação rápida.</p></article>
+      <article><span>02</span><h3>Pedidos por QR Code</h3><p>Cada mesa tem seu próprio código. O cliente acessa sem baixar aplicativo.</p></article>
+      <article><span>03</span><h3>Cozinha em tempo real</h3><p>Pedidos organizados por etapa para a equipe saber exatamente o que preparar.</p></article>
+      <article><span>04</span><h3>Caixa sem confusão</h3><p>Acompanhe pagamento, entrega, cancelamento e devolução em um único histórico.</p></article>
+    </div>
+  </section>
+
+  <section class="how-section" id="como-funciona"><div><span class="eyebrow">COMECE SEM COMPLICAÇÃO</span><h2>Sua loja online em poucos passos</h2></div><ol><li><b>1</b><div><strong>Crie sua conta</strong><p>Informe os dados do restaurante e escolha seu endereço.</p></div></li><li><b>2</b><div><strong>Ative o plano</strong><p>Pague com cartão ou Pix em um ambiente seguro.</p></div></li><li><b>3</b><div><strong>Monte o cardápio</strong><p>Cadastre categorias, produtos, preços e fotos.</p></div></li><li><b>4</b><div><strong>Publique e venda</strong><p>Compartilhe o link ou imprima os QR Codes das mesas.</p></div></li></ol></section>
+
+  <section class="pricing-section" id="preco"><div class="pricing-copy"><span class="eyebrow">PREÇO SIMPLES E TRANSPARENTE</span><h2>Uma mensalidade.<br>Todos os recursos.</h2><p>Sem taxa por pedido e sem surpresas. Renove apenas quando quiser continuar usando.</p></div><article class="price-card"><span class="popular">PLANO COMPLETO</span><div><strong><%= money(plan.cents) %></strong><small>/mês</small></div><ul><li>Cardápio digital completo</li><li>Pedidos por mesa e balcão</li><li>Painel da cozinha e do caixa</li><li>Usuários para sua equipe</li><li>QR Codes das mesas</li></ul><a class="button-link" href="/cadastro">Começar agora</a><small>Pagamento seguro por cartão ou Pix</small></article></section>
+
+  <section class="final-cta"><div><h2>Pronto para modernizar seu atendimento?</h2><p>Crie sua conta e coloque seu cardápio no ar.</p></div><a class="button-link" href="/cadastro">Criar minha loja</a></section>
+</main>
+<footer class="marketing-footer"><%- include('brand') %><span>Autoatendimento simples para restaurantes.</span><a href="/login">Área do cliente</a></footer>
+</body></html>

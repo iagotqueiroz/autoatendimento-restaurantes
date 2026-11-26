@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="csrf-token" content="<%= csrf %>">
+    <% if(typeof description!=='undefined'){ %><meta name="description" content="<%= description %>"><% } %>
     <title><%= title %> · Mesa Aberta</title>
     <link rel="stylesheet" href="/assets/app.css">
     <script defer src="/assets/app.js"></script>

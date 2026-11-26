@@ -6,6 +6,7 @@ import { one, query, transaction, check, num, str, json } from './db.js'
 import { slug, email, hash } from './accounts.js'
 import { saveProduct, imageId } from './catalog.js'
 import { change } from './orders.js'
+import { hasAccess } from './billing.js'
 export const staff = express.Router()
 export const access =
   (...roles) =>
@@ -15,6 +16,13 @@ export const access =
     next()
   }
 staff.use(access('dono', 'caixa', 'cozinha', 'admin'))
+staff.use(async (req, res, next) => {
+  if (req.user.role === 'admin') return next()
+  const store = await one('SELECT subscription,expires FROM stores WHERE id=?', [req.user.store_id])
+  if (hasAccess(store)) return next()
+  if (req.user.role === 'dono') return res.redirect('/assinar')
+  check(false, 'A assinatura da loja está inativa. Fale com o responsável pelo restaurante.', 402)
+})
 staff.get('/', (req, res) =>
   res.redirect(
     '/painel/' +
@@ -30,7 +38,7 @@ staff.get('/plataforma', access('admin'), async (req, res) =>
 )
 staff.post('/plataforma/:id', access('admin'), async (req, res) => {
   const status = req.body.status
-  check(['ativa', 'suspensa', 'teste'].includes(status))
+  check(['pendente', 'ativa', 'suspensa', 'teste'].includes(status))
   check(/^\d{4}-\d\d-\d\d$/.test(req.body.expires))
   await query('UPDATE stores SET subscription=?,expires=? WHERE id=?', [
     status,
@@ -39,8 +47,14 @@ staff.post('/plataforma/:id', access('admin'), async (req, res) => {
   ])
   res.redirect('/painel/plataforma')
 })
-staff.get('/loja', access('dono'), async (req, res) => {
+staff.get(['/loja', '/loja/:area'], access('dono'), async (req, res) => {
   const id = req.user.store_id
+  const area = req.params.area || 'inicio'
+  check(
+    ['inicio', 'categorias', 'produtos', 'mesas', 'equipe', 'configuracoes'].includes(area),
+    'Página não encontrada.',
+    404,
+  )
   const [store, categories, products, tables, team] = await Promise.all([
     one('SELECT * FROM stores WHERE id=?', [id]),
     query('SELECT * FROM categories WHERE store_id=? ORDER BY position,id', [id]),
@@ -62,6 +76,7 @@ staff.get('/loja', access('dono'), async (req, res) => {
     team,
     json,
     notice: notices[req.query.notice],
+    area,
   })
 })
 staff.post('/loja/:section', access('dono'), async (req, res) => {
@@ -170,7 +185,18 @@ staff.post('/loja/:section', access('dono'), async (req, res) => {
           ? 'aberto'
           : 'pausado'
         : null
-  res.redirect(notice ? '/painel/loja?notice=' + notice : '/painel/loja#' + section)
+  const pages = {
+    categorias: 'categorias',
+    produtos: 'produtos',
+    disponibilidade: 'produtos',
+    mesas: 'mesas',
+    equipe: 'equipe',
+    'remover-acesso': 'equipe',
+    config: 'configuracoes',
+  }
+  res.redirect(
+    notice ? '/painel/loja?notice=' + notice : '/painel/loja/' + (pages[section] || 'inicio'),
+  )
 })
 staff.get('/qr/:id', access('dono'), async (req, res) => {
   const t = await one('SELECT token FROM tables_rest WHERE id=? AND store_id=?', [

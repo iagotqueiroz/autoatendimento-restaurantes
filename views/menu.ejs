@@ -1,7 +1,7 @@
-<%- include('head',{title:store.name}) %><header class="top"><strong><% if(store.logo){ %><img class="logo" alt=""
-      src="/img/<%= store.logo %>"><% } %><%= store.name %></strong><span
-    class="pill"><%= preview?'Prévia':table?table.name:'Balcão' %></span></header>
-<main id="menu" data-base="<%= base %>" data-kiosk="<%= !table&&!preview %>" data-preview="<%= preview %>"
+<%- include('head',{title:store.name}) %><header class="menu-header"><div class="menu-brand"><% if(store.logo){ %><img class="menu-logo" alt=""
+      src="/img/<%= store.logo %>"><% }else{ %><span class="menu-logo-fallback" aria-hidden="true"><%= store.name.charAt(0).toUpperCase() %></span><% } %><div><small>Cardápio digital</small><strong><%= store.name %></strong></div></div><span
+    class="status-chip <%= open||preview?'status-live':'status-paused' %>"><span class="status-dot"></span><%= preview?'Modo prévia':open?(table?table.name:'Balcão'):'Pedidos pausados' %></span></header>
+<main class="menu-main" id="menu" data-base="<%= base %>" data-kiosk="<%= !table&&!preview %>" data-preview="<%= preview %>"
   data-products="<%= JSON.stringify(products.map(({id,name,description,groups,price,promo,image})=>({id,name,description,groups,price,promo,image}))) %>">
   <% if(!table&&!preview){ %><section class="panel kiosk" id="welcome"><span class="eyebrow">AUTOATENDIMENTO</span>
     <h1><%= store.name %></h1><button id="start" <%= open?'':'disabled' %>>Iniciar pedido →</button>
@@ -10,18 +10,20 @@
         data-mode="Levar">Levar</button>
     </div>
   </section><% } %>
-  <% if(!open&&!preview){ %><p class="notice">Recebimento de pedidos fechado.</p><% } %><section id="browse"
-    <%= !table&&!preview?'hidden':'' %>><span class="eyebrow">CARDÁPIO DIGITAL</span>
-    <h1>Nosso cardápio</h1>
-    <nav class="tabs"><% for(const c of categories){ %><a href="#cat-<%= c.id %>"><%= c.name %></a><% } %></nav>
-    <% for(const c of categories){ %><section id="cat-<%= c.id %>">
+  <% if(!open&&!preview){ %><p class="notice menu-notice">O restaurante não está recebendo novos pedidos agora. Você ainda pode consultar o cardápio.</p><% } %><section id="browse"
+    <%= !table&&!preview?'hidden':'' %>><div class="menu-welcome"><span class="eyebrow">FAÇA SEU PEDIDO</span>
+    <h1>O que você gostaria de pedir?</h1><p>Escolha seus favoritos e personalize do seu jeito.</p></div>
+    <label class="menu-search"><span aria-hidden="true">⌕</span><input id="menu-search" type="search" placeholder="Buscar no cardápio" autocomplete="off"><span class="sr-only">Buscar no cardápio</span></label>
+    <nav class="tabs menu-categories"><% for(const c of categories){ %><a href="#cat-<%= c.id %>"><%= c.name %></a><% } %></nav>
+    <p id="search-empty" class="empty-state" hidden>Nenhum produto encontrado. Tente buscar por outro nome.</p>
+    <% for(const c of categories){ %><section class="menu-category" id="cat-<%= c.id %>">
       <h2><%= c.name %></h2>
-      <div class="grid"><% for(const p of products.filter(x=>x.category_id===c.id)){ %><button class="product"
+      <div class="grid menu-products"><% for(const p of products.filter(x=>x.category_id===c.id)){ %><button class="product"
           data-product="<%= p.id %>" <%= open||preview?'':'disabled' %>><% if(p.image){ %><img loading="lazy"
             src="/img/<%= p.image %>" alt=""><% } %><div>
             <h3><%= p.name %></h3>
             <p><%= p.description %></p><% if(p.promo!=null){ %><del><%= money(p.price) %></del><% } %>
-            <b><%= money(p.promo??p.price) %></b>　＋
+            <span class="product-price"><b><%= money(p.promo??p.price) %></b><i aria-hidden="true">＋</i></span>
           </div></button><% } %></div>
     </section><% } %><button id="bag" class="cartbar"></button>
   </section>

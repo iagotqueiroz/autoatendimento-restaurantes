@@ -9,6 +9,16 @@
     <div class="flash success-flash" role="status"><span aria-hidden="true">✓</span><%= notice %></div>
   <% } %>
 
+  <nav class="owner-nav owner-nav-pages" aria-label="Áreas da loja">
+    <a class="<%= area==='inicio'?'active':'' %>" href="/painel/loja">Visão geral</a>
+    <a class="<%= area==='categorias'?'active':'' %>" href="/painel/loja/categorias">Categorias</a>
+    <a class="<%= area==='produtos'?'active':'' %>" href="/painel/loja/produtos">Produtos</a>
+    <a class="<%= area==='mesas'?'active':'' %>" href="/painel/loja/mesas">Mesas e QR</a>
+    <a class="<%= area==='equipe'?'active':'' %>" href="/painel/loja/equipe">Equipe</a>
+    <a class="<%= area==='configuracoes'?'active':'' %>" href="/painel/loja/configuracoes">Configurações</a>
+  </nav>
+
+  <% if(area==='inicio'){ %>
   <section class="owner-hero" id="inicio">
     <div class="owner-title">
       <div class="status-row">
@@ -57,8 +67,8 @@
       </div>
       <ol class="setup-list">
         <li class="done"><span>✓</span><div><strong>Loja criada</strong><small>Nome e endereço configurados</small></div></li>
-        <li class="<%= categories.length?'done':'' %>"><span><%= categories.length?'✓':'2' %></span><div><strong>Crie uma categoria</strong><small>Organize produtos em pratos, bebidas ou lanches</small></div><a href="#categorias"><%= categories.length?'Revisar':'Criar' %></a></li>
-        <li class="<%= products.length?'done':'' %>"><span><%= products.length?'✓':'3' %></span><div><strong>Cadastre um produto</strong><small>Adicione nome, preço, foto e opções</small></div><a href="#produtos"><%= products.length?'Revisar':'Cadastrar' %></a></li>
+        <li class="<%= categories.length?'done':'' %>"><span><%= categories.length?'✓':'2' %></span><div><strong>Crie uma categoria</strong><small>Organize produtos em pratos, bebidas ou lanches</small></div><a href="/painel/loja/categorias"><%= categories.length?'Revisar':'Criar' %></a></li>
+        <li class="<%= products.length?'done':'' %>"><span><%= products.length?'✓':'3' %></span><div><strong>Cadastre um produto</strong><small>Adicione nome, preço, foto e opções</small></div><a href="/painel/loja/produtos"><%= products.length?'Revisar':'Cadastrar' %></a></li>
         <li><span>4</span><div><strong>Revise e publique</strong><small>Confira a prévia antes de abrir para clientes</small></div><a href="/previa" target="_blank">Abrir prévia</a></li>
       </ol>
       <% if(canPublish){ %>
@@ -87,21 +97,14 @@
   </section>
 
   <section class="summary-grid" aria-label="Resumo da loja">
-    <a href="#produtos"><strong><%= products.length %></strong><span>Produtos</span><small><%= products.filter(p=>p.available).length %> disponíveis</small></a>
-    <a href="#categorias"><strong><%= categories.length %></strong><span>Categorias</span><small>Ordem do cardápio</small></a>
-    <a href="#mesas"><strong><%= tables.length %></strong><span>Mesas</span><small>QR Codes permanentes</small></a>
-    <a href="#equipe"><strong><%= Math.max(0,team.length-1) %></strong><span>Funcionários</span><small>Caixa e cozinha</small></a>
+    <a href="/painel/loja/produtos"><strong><%= products.length %></strong><span>Produtos</span><small><%= products.filter(p=>p.available).length %> disponíveis</small></a>
+    <a href="/painel/loja/categorias"><strong><%= categories.length %></strong><span>Categorias</span><small>Ordem do cardápio</small></a>
+    <a href="/painel/loja/mesas"><strong><%= tables.length %></strong><span>Mesas</span><small>QR Codes permanentes</small></a>
+    <a href="/painel/loja/equipe"><strong><%= Math.max(0,team.length-1) %></strong><span>Funcionários</span><small>Caixa e cozinha</small></a>
   </section>
+  <% } %>
 
-  <nav class="owner-nav" aria-label="Configurações da loja">
-    <a href="#inicio">Visão geral</a>
-    <a href="#categorias">Categorias</a>
-    <a href="#produtos">Produtos</a>
-    <a href="#mesas">Mesas e QR</a>
-    <a href="#equipe">Equipe</a>
-    <a href="#config">Configurações</a>
-  </nav>
-
+  <% if(area==='categorias'){ %>
   <section id="categorias" class="panel owner-section">
     <div class="section-heading">
       <div><span class="eyebrow">CARDÁPIO</span><h2>Categorias</h2><p>Defina as seções e a ordem em que o cliente verá os produtos.</p></div>
@@ -128,14 +131,16 @@
       <button>Criar categoria</button>
     </form>
   </section>
+  <% } %>
 
+  <% if(area==='produtos'){ %>
   <section id="produtos" class="panel owner-section">
     <div class="section-heading">
       <div><span class="eyebrow">CARDÁPIO</span><h2>Produtos</h2><p>Gerencie preços, fotos, adicionais e disponibilidade.</p></div>
       <span class="count-badge"><%= products.length %> cadastrados</span>
     </div>
     <% if(!categories.length){ %>
-      <div class="empty-state"><strong>Crie uma categoria primeiro</strong><p>Todo produto precisa pertencer a uma categoria.</p><a href="#categorias">Ir para categorias</a></div>
+      <div class="empty-state"><strong>Crie uma categoria primeiro</strong><p>Todo produto precisa pertencer a uma categoria.</p><a href="/painel/loja/categorias">Ir para categorias</a></div>
     <% }else{ %>
       <details class="create-product" <%= products.length?'':'open' %>>
         <summary>＋ Adicionar produto</summary>
@@ -165,7 +170,9 @@
       <% } %>
     <% } %>
   </section>
+  <% } %>
 
+  <% if(area==='mesas'){ %>
   <section id="mesas" class="panel owner-section">
     <div class="section-heading">
       <div><span class="eyebrow">ATENDIMENTO</span><h2>Mesas e balcão</h2><p>Os QR Codes continuam válidos quando você renomeia a mesa ou altera produtos.</p></div>
@@ -190,7 +197,9 @@
       <%- include('csrf') %><label>Nova mesa<input name="name" required placeholder="Ex.: Mesa 1"></label><button>Criar mesa</button>
     </form>
   </section>
+  <% } %>
 
+  <% if(area==='equipe'){ %>
   <section class="panel owner-section" id="equipe">
     <div class="section-heading">
       <div><span class="eyebrow">ACESSOS</span><h2>Equipe</h2><p>Crie acessos separados para o caixa e a cozinha.</p></div>
@@ -212,7 +221,9 @@
       </form>
     </details>
   </section>
+  <% } %>
 
+  <% if(area==='configuracoes'){ %>
   <section id="config" class="panel owner-section">
     <div class="section-heading">
       <div><span class="eyebrow">PREFERÊNCIAS</span><h2>Configurações da loja</h2><p>Informações, horários, canais e regras de pagamento.</p></div>
@@ -247,6 +258,7 @@
       <div class="form-footer"><p>Publicação e abertura de pedidos são controladas no topo desta página.</p><button>Salvar configurações</button></div>
     </form>
   </section>
+  <% } %>
 </main>
 <script defer src="/assets/options.js"></script>
 </body>

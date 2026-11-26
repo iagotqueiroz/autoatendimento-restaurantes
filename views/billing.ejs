@@ -1,0 +1,19 @@
+<%- include('head',{title:'Assinatura'}) %>
+<header class="top"><a href="/" aria-label="Mesa Aberta"><%- include('brand') %></a><nav><form action="/sair" method="post"><%- include('csrf') %><button class="quiet">Sair</button></form></nav></header>
+<main class="billing-page">
+  <section class="billing-intro"><span class="eyebrow">ASSINATURA</span><h1><%= active?'Seu acesso está ativo':'Ative sua loja para continuar' %></h1><p><%= active?'Você pode usar todos os recursos da plataforma.':'Escolha como pagar no ambiente seguro do Mercado Pago. Assim que o pagamento for confirmado, seu painel é liberado automaticamente.' %></p></section>
+  <% if(result==='success'){ %><div class="flash success-flash" role="status"><span>✓</span>Pagamento recebido. Se o acesso ainda não aparecer, aguarde alguns segundos e atualize a página.</div><% } %>
+  <% if(result==='pending'){ %><div class="billing-alert">Seu pagamento está em análise. A liberação acontece automaticamente após a aprovação.</div><% } %>
+  <% if(result==='failure'){ %><div class="billing-alert billing-error">O pagamento não foi concluído. Você pode tentar novamente sem perder seu cadastro.</div><% } %>
+  <div class="billing-layout">
+    <section class="billing-card">
+      <div class="billing-plan-head"><div><span class="eyebrow">PLANO MENSAL</span><h2><%= plan.name %></h2></div><div class="billing-price"><strong><%= money(plan.cents) %></strong><small>por mês</small></div></div>
+      <ul class="billing-benefits"><li>Cardápio digital e QR Codes</li><li>Pedidos de mesa e balcão</li><li>Painéis da cozinha e do caixa</li><li>Produtos, adicionais e promoções</li><li>Acessos para sua equipe</li></ul>
+      <% if(active){ %><div class="subscription-active"><span>✓</span><div><strong>Assinatura ativa</strong><small>Acesso liberado até <%= store.expires.split('-').reverse().join('/') %></small></div></div><a class="button-link billing-button" href="/painel">Ir para o painel</a>
+      <% }else if(providerReady){ %><form action="/assinar/checkout" method="post"><%- include('csrf') %><button class="billing-button">Pagar com cartão ou Pix</button></form><small class="secure-note">Pagamento seguro: você será levado ao Mercado Pago. A Mesa Aberta não recebe nem armazena os dados do seu cartão.</small>
+      <% }else{ %><div class="billing-alert">O pagamento online está sendo configurado. Seu cadastro foi salvo; volte em breve.</div><button class="billing-button" disabled>Pagamento temporariamente indisponível</button><% } %>
+    </section>
+    <aside class="billing-help"><h3>Como funciona?</h3><ol><li><span>1</span><p>Escolha cartão ou Pix no Mercado Pago.</p></li><li><span>2</span><p>Conclua o pagamento com segurança.</p></li><li><span>3</span><p>Seu painel é liberado automaticamente.</p></li></ol><hr><strong>Já pagou?</strong><p>Atualize esta página. Pagamentos por cartão costumam ser imediatos; o Pix libera após a confirmação.</p><a href="/assinar">Atualizar situação</a></aside>
+  </div>
+</main>
+</body></html>

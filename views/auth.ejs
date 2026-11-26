@@ -1,7 +1,7 @@
 <%- include('head',{title:signup?'Criar restaurante':'Acesso ao painel'}) %>
 <header class="top"><a href="/"><%- include('brand') %></a>
   <nav><span class="muted"> <%= signup?'Já tem uma conta?':'Ainda não tem conta?' %></span><a class="outline"
-      href="<%= signup?'/login':'/cadastro' %>"><%= signup?'Entrar':'Criar restaurante' %> ↗</a></nav>
+      href="<%= signup?'/login':'/cadastro' %>"><%= signup?'Entrar':'Criar restaurante' %></a></nav>
 </header>
 <main class="auth">
   <section class="cover"><img src="/assets/restaurante.webp"
@@ -14,7 +14,7 @@
   <section class="authform"><span class="eyebrow"><i class="dot"></i> ÁREA DO RESTAURANTE</span>
     <h2><%= signup?'Crie sua conta':'Acesse seu painel' %></h2>
     <p class="muted">
-      <%= signup?'Cadastre sua loja para começar o período de teste.':'Entre com os dados da sua conta para continuar.' %>
+      <%= signup?'Cadastre sua loja e escolha a forma de pagamento para liberar o painel.':'Entre com os dados da sua conta para continuar.' %>
     </p>
     <form method="post" action="<%= signup?'/cadastro':'/login' %>"><%- include('csrf') %>
       <% if(signup){ %><label>Seu nome<input name="name" required maxlength="100"

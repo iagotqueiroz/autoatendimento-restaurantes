@@ -1,0 +1,1 @@
+ALTER TABLE billing_payments ADD credited BOOLEAN NOT NULL DEFAULT FALSE;
