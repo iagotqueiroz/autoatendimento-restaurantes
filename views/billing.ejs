@@ -5,6 +5,7 @@
   <% if(result==='success'){ %><div class="flash success-flash" role="status"><span>✓</span>Pagamento recebido. Se o acesso ainda não aparecer, aguarde alguns segundos e atualize a página.</div><% } %>
   <% if(result==='pending'){ %><div class="billing-alert">Seu pagamento está em análise. A liberação acontece automaticamente após a aprovação.</div><% } %>
   <% if(result==='failure'){ %><div class="billing-alert billing-error">O pagamento não foi concluído. Você pode tentar novamente sem perder seu cadastro.</div><% } %>
+  <% if(error){ %><div class="billing-alert billing-error" role="alert"><strong>Não foi possível abrir o checkout.</strong><br><%= error %><br><small>Se você acabou de alterar a variável, faça uma nova implantação antes de tentar novamente.</small></div><% } %>
   <div class="billing-layout">
     <section class="billing-card">
       <div class="billing-plan-head"><div><span class="eyebrow">PLANO MENSAL</span><h2><%= plan.name %></h2></div><div class="billing-price"><strong><%= money(plan.cents) %></strong><small>por mês</small></div></div>

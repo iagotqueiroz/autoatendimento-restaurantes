@@ -16,6 +16,8 @@ export const plan = {
 }
 
 const token = () => process.env.MERCADO_PAGO_ACCESS_TOKEN
+const billingError = (message, detail) =>
+  Object.assign(Error(message), { status: 502, billing: true, detail })
 const publicUrl = () => {
   try {
     return new URL(process.env.PUBLIC_URL)
@@ -32,8 +34,12 @@ export function hasAccess(store) {
   )
 }
 
-async function mercadoPago(path, options = {}) {
-  check(token(), 'O pagamento ainda não foi configurado pelo administrador.', 503)
+export async function mercadoPago(path, options = {}) {
+  if (!token())
+    throw billingError(
+      'O token do Mercado Pago não foi encontrado. Confira a variável MERCADO_PAGO_ACCESS_TOKEN.',
+      'missing_access_token',
+    )
   let response
   try {
     response = await fetch('https://api.mercadopago.com' + path, {
@@ -45,12 +51,27 @@ async function mercadoPago(path, options = {}) {
       },
     })
   } catch {
-    check(false, 'Não foi possível acessar o serviço de pagamento. Tente novamente.', 502)
+    throw billingError(
+      'O servidor não conseguiu se conectar ao Mercado Pago. Tente novamente em alguns minutos.',
+      'network_error',
+    )
   }
   const body = await response.json().catch(() => ({}))
   if (!response.ok) {
-    console.error('Mercado Pago', response.status, body.message || body.error)
-    check(false, 'O checkout não pôde ser aberto. Tente novamente em alguns minutos.', 502)
+    const cause = Array.isArray(body.cause)
+      ? body.cause
+          .map((item) => item.description || item.code)
+          .filter(Boolean)
+          .join('; ')
+      : ''
+    const detail = [body.error, body.message, cause].filter(Boolean).join(' · ')
+    const message =
+      response.status === 401 || response.status === 403
+        ? 'O Mercado Pago recusou o Access Token. Confira se você copiou a credencial correta e se ela está ativa.'
+        : response.status === 400
+          ? 'O Mercado Pago recusou os dados do checkout. Confira a configuração da aplicação e o domínio público.'
+          : 'O Mercado Pago não conseguiu criar o checkout agora. Tente novamente em alguns minutos.'
+    throw billingError(message, `HTTP ${response.status}${detail ? ' · ' + detail : ''}`)
   }
   return body
 }
@@ -139,12 +160,15 @@ billing.post('/webhooks/mercado-pago', async (req, res) => {
 billing.get('/assinar', async (req, res) => {
   if (!req.user) return res.redirect('/login?destino=assinar')
   const store = await ownerStore(req)
+  const error = req.session.billingError
+  delete req.session.billingError
   res.render('billing', {
     store,
     plan,
     active: hasAccess(store),
     providerReady: Boolean(token() && process.env.PUBLIC_URL),
     result: req.query.result,
+    error,
   })
 })
 
@@ -163,40 +187,53 @@ billing.post('/assinar/checkout', async (req, res) => {
     "INSERT INTO billing_checkouts(id,store_id,provider,status,amount) VALUES(?,?,'mercado_pago','criado',?)",
     [checkoutId, store.id, plan.cents],
   )
-  const preference = await mercadoPago('/checkout/preferences', {
-    method: 'POST',
-    headers: { 'X-Idempotency-Key': checkoutId },
-    body: JSON.stringify({
-      items: [
-        {
-          id: plan.code,
-          title: plan.name + ' — 1 mês',
-          description: 'Acesso à plataforma de cardápio e autoatendimento por 1 mês',
-          category_id: 'services',
-          quantity: 1,
-          currency_id: 'BRL',
-          unit_price: plan.cents / 100,
+  let preference
+  try {
+    preference = await mercadoPago('/checkout/preferences', {
+      method: 'POST',
+      body: JSON.stringify({
+        items: [
+          {
+            id: plan.code,
+            title: plan.name + ' — 1 mês',
+            description: 'Acesso à plataforma de cardápio e autoatendimento por 1 mês',
+            category_id: 'services',
+            quantity: 1,
+            currency_id: 'BRL',
+            unit_price: plan.cents / 100,
+          },
+        ],
+        payer: { email: payer.email },
+        external_reference: checkoutId,
+        metadata: { checkout_id: checkoutId, store_id: store.id },
+        notification_url: new URL('/webhooks/mercado-pago', base).href,
+        back_urls: {
+          success: new URL('/assinar/retorno?result=success', base).href,
+          pending: new URL('/assinar/retorno?result=pending', base).href,
+          failure: new URL('/assinar/retorno?result=failure', base).href,
         },
-      ],
-      payer: { email: payer.email },
-      external_reference: checkoutId,
-      metadata: { checkout_id: checkoutId, store_id: store.id },
-      notification_url: new URL('/webhooks/mercado-pago', base).href,
-      back_urls: {
-        success: new URL('/assinar/retorno?result=success', base).href,
-        pending: new URL('/assinar/retorno?result=pending', base).href,
-        failure: new URL('/assinar/retorno?result=failure', base).href,
-      },
-      auto_return: 'approved',
-      payment_methods: { installments: 1 },
-      statement_descriptor: 'MESA ABERTA',
-    }),
-  })
+        auto_return: 'approved',
+        payment_methods: { installments: 1 },
+        statement_descriptor: 'MESA ABERTA',
+      }),
+    })
+  } catch (error) {
+    if (!error.billing) throw error
+    console.error('Falha no checkout do Mercado Pago:', error.detail)
+    await query("UPDATE billing_checkouts SET status='erro',updated=UTC_TIMESTAMP() WHERE id=?", [
+      checkoutId,
+    ])
+    req.session.billingError = error.message
+    return res.redirect(303, '/assinar')
+  }
   await query(
     "UPDATE billing_checkouts SET preference_id=?,status='checkout',updated=UTC_TIMESTAMP() WHERE id=?",
     [preference.id, checkoutId],
   )
-  const destination = preference.init_point || preference.sandbox_init_point
+  const testCredential = token().startsWith('TEST-')
+  const destination = testCredential
+    ? preference.sandbox_init_point || preference.init_point
+    : preference.init_point || preference.sandbox_init_point
   check(destination && new URL(destination).protocol === 'https:', 'Checkout inválido.', 502)
   res.redirect(303, destination)
 })

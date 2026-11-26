@@ -142,6 +142,8 @@ MERCADO_PAGO_ACCESS_TOKEN=APP_USR-cole-aqui-o-token-de-producao
 
 Em caso de checkout indisponível, confirme se o token começa com o prefixo esperado pelo Mercado Pago, se `PUBLIC_URL` está correto e se o domínio responde com HTTPS. Nunca registre o token em logs ou capturas de tela.
 
+Se o botão recarregar a página sem abrir o Mercado Pago, tente novamente após implantar a versão mais recente. A tela mostrará se o token foi recusado, se os dados do checkout foram rejeitados ou se o servidor não alcançou a API. Nos logs da aplicação, procure por **Falha no checkout do Mercado Pago**; a linha seguinte contém o status HTTP e a descrição da API, mas nunca o token. Tokens `TEST-...` abrem o ambiente de teste e tokens `APP_USR-...` abrem o checkout de produção.
+
 **Terminal do servidor**, quando seu plano disponibilizar Node e as variáveis da aplicação nesse terminal. Entre no diretório da implantação que contém `package.json`. Para migração manual e administração:
 
 ```sh

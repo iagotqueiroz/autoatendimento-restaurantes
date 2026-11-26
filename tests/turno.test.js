@@ -513,3 +513,25 @@ test('15 · Pagamento em análise libera somente uma mensalidade quando aprovado
     delete process.env.MERCADO_PAGO_ACCESS_TOKEN
   }
 })
+
+test('16 · Erro do Mercado Pago é traduzido sem expor o token', async () => {
+  process.env.MERCADO_PAGO_ACCESS_TOKEN = 'token-secreto-de-teste'
+  const originalFetch = global.fetch
+  global.fetch = async () => ({
+    ok: false,
+    status: 401,
+    json: async () => ({ error: 'unauthorized', message: 'invalid access token' }),
+  })
+  try {
+    const { mercadoPago } = await import('../src/billing.js')
+    await assert.rejects(mercadoPago('/checkout/preferences'), (error) => {
+      assert.equal(error.billing, true)
+      assert.match(error.message, /recusou o Access Token/)
+      assert.doesNotMatch(error.message + error.detail, /token-secreto-de-teste/)
+      return true
+    })
+  } finally {
+    global.fetch = originalFetch
+    delete process.env.MERCADO_PAGO_ACCESS_TOKEN
+  }
+})
