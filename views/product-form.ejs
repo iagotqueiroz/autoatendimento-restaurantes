@@ -1,0 +1,14 @@
+<form action="/painel/loja/produtos" method="post" enctype="multipart/form-data" class="product-editor">
+  <%- include('csrf') %><input type="hidden" name="id" value="<%= p.id??'' %>">
+  <div class="form-grid">
+    <label>Nome do produto<input name="name" required value="<%= p.name??'' %>" placeholder="Ex.: X-Burger"></label>
+    <label>Categoria<select name="category"><% for(const c of categories){ %><option value="<%= c.id %>" <%= c.id===p.category_id?'selected':'' %>><%= c.name %></option><% } %></select></label>
+    <label class="span-2">Descrição<textarea name="description" maxlength="600" placeholder="Conte ao cliente o que acompanha o produto"><%= p.description??'' %></textarea></label>
+    <label>Preço normal (R$)<input required name="price" inputmode="decimal" value="<%= p.price!=null?(p.price/100).toFixed(2):'' %>" placeholder="0,00"></label>
+    <label>Preço promocional (R$)<input name="promo" inputmode="decimal" value="<%= p.promo!=null?(p.promo/100).toFixed(2):'' %>" placeholder="Opcional"></label>
+    <label class="span-2">Foto do produto<input name="image" type="file" accept="image/png,image/jpeg,image/webp"><small>JPEG, PNG ou WebP de até 5 MB.</small></label>
+  </div>
+  <label class="groups-source">Grupos de opções<textarea name="groups" data-groups="<%= JSON.stringify(p.id?json(p.groups_json):[]) %>"><%= p.id?json(p.groups_json).map(g=>[g.name,g.min,g.max,g.options.map(o=>o.name+'='+ (o.price/100).toFixed(2)).join('; ')].join(' | ')).join('\n'):'' %></textarea></label>
+  <small>Crie escolhas obrigatórias ou adicionais opcionais para este produto.</small>
+  <button><%= p.id?'Salvar alterações':'Cadastrar produto' %></button>
+</form>

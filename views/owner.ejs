@@ -1,92 +1,253 @@
-<%- include('head',{title:'Minha loja'}) %><%- include('nav') %><main>
-  <div class="heading">
-    <div><span class="eyebrow">PAINEL DO RESTAURANTE</span>
+<%- include('head',{title:'Minha loja'}) %>
+<%- include('nav') %>
+<%
+  const setupDone = 1 + Number(categories.length > 0) + Number(products.length > 0) + Number(store.published)
+  const canPublish = categories.length > 0 && products.length > 0
+%>
+<main class="owner-main">
+  <% if(notice){ %>
+    <div class="flash success-flash" role="status"><span aria-hidden="true">✓</span><%= notice %></div>
+  <% } %>
+
+  <section class="owner-hero" id="inicio">
+    <div class="owner-title">
+      <div class="status-row">
+        <span class="status-chip <%= store.published?'status-live':'status-draft' %>">
+          <span class="status-dot" aria-hidden="true"></span>
+          <%= store.published?'Cardápio publicado':'Cardápio em rascunho' %>
+        </span>
+        <span class="status-chip <%= store.taking&&store.published?'status-live':'status-paused' %>">
+          <%= store.taking&&store.published?'Recebendo pedidos':'Pedidos pausados' %>
+        </span>
+      </div>
+      <span class="eyebrow">MINHA LOJA</span>
       <h1><%= store.name %></h1>
-      <p>
-        <%= store.published?'Cardápio publicado':'Comece por uma categoria e um produto. Depois, publique em Configurações.' %>
-      </p>
-    </div><a class="outline" href="/previa">Prévia do cardápio ↗</a>
-  </div>
-  <nav class="tabs">
-    <% for(const [key,label] of Object.entries({categorias:'Categorias',produtos:'Produtos',mesas:'Mesas e QR',equipe:'Equipe',config:'Configurações'})){ %><a
-      href="#<%= key %>"><%= label %></a><% } %></nav>
-  <section id="categorias" class="panel">
-    <h2>Categorias</h2><% for(const c of [...categories,{}]){ %><form action="/painel/loja/categorias" method="post"
-      class="row"><%- include('csrf') %><input type="hidden" name="id" value="<%= c.id %>"><label>Nome<input required
-          name="name" value="<%= c.name %>" placeholder="Nova categoria"></label><label>Ordem<input type="number"
-          min="0" required name="position"
-          value="<%= c.position??0 %>"></label><button><%= c.id?'Salvar':'Criar categoria' %></button></form><% } %>
+      <p class="owner-address"><%= store.slug %> · Fuso <%= store.zone %></p>
+    </div>
+    <div class="hero-actions">
+      <a class="outline" href="/previa" target="_blank">Ver como cliente</a>
+      <% if(store.published){ %>
+        <a class="button-link" href="/l/<%= store.slug %>" target="_blank">Abrir cardápio</a>
+        <form action="/painel/loja/publicacao" method="post" data-confirm="Retirar o cardápio do ar? Os pedidos e produtos serão preservados.">
+          <%- include('csrf') %>
+          <input type="hidden" name="action" value="ocultar">
+          <button class="quiet danger">Retirar do ar</button>
+        </form>
+      <% }else{ %>
+        <form action="/painel/loja/publicacao" method="post">
+          <%- include('csrf') %>
+          <input type="hidden" name="action" value="publicar">
+          <button <%= canPublish?'':'disabled' %>>Publicar cardápio</button>
+        </form>
+      <% } %>
+    </div>
   </section>
-  <section id="produtos" class="panel">
-    <h2>Produtos</h2><% if(!categories.length){ %><p>Crie uma categoria para cadastrar produtos.</p>
-    <% }else{ for(const p of [{},...products]){ %><details>
-      <summary>
-        <%= p.id?p.name+' · '+money(p.promo??p.price)+' · '+(p.available?'Disponível':'Pausado'):'＋ Cadastrar produto' %>
-      </summary>
-      <form action="/painel/loja/produtos" method="post" enctype="multipart/form-data"><%- include('csrf') %><input
-          type="hidden" name="id" value="<%= p.id %>"><label>Nome<input name="name" required
-            value="<%= p.name %>"></label><label>Categoria<select name="category"><% for(const c of categories){ %>
-            <option value="<%= c.id %>" <%= c.id===p.category_id?'selected':'' %>><%= c.name %></option>
-            <% } %></select></label><label>Descrição<textarea name="description"
-            maxlength="600"><%= p.description %></textarea></label>
-        <div class="row"><label>Preço (R$)<input required name="price" inputmode="decimal"
-              value="<%= p.price!=null?(p.price/100).toFixed(2):'' %>"></label><label>Promoção (R$)<input name="promo"
-              inputmode="decimal" value="<%= p.promo!=null?(p.promo/100).toFixed(2):'' %>"></label></div><label>Foto até
-          5 MB<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Grupos de
-          opções<textarea name="groups" data-groups="<%= JSON.stringify(p.id?json(p.groups_json):[]) %>"
-            placeholder="Bebida | 1 | 1 | Suco=0; Água=0"><%= p.id?json(p.groups_json).map(g=>[g.name,g.min,g.max,g.options.map(o=>o.name+'='+ (o.price/100).toFixed(2)).join('; ')].join(' | ')).join('\n'):'' %></textarea></label><small>Um
-          grupo por linha. Use nome | mínimo | máximo | opção=preço; opção=preço.</small><button>Salvar produto</button>
+
+  <% if(!store.published){ %>
+    <section class="setup-card" aria-labelledby="setup-title">
+      <div class="setup-heading">
+        <div>
+          <span class="eyebrow">PRIMEIRO ACESSO</span>
+          <h2 id="setup-title">Prepare sua loja para publicar</h2>
+        </div>
+        <strong><%= setupDone %> de 4 etapas</strong>
+      </div>
+      <div class="progress-track" aria-label="<%= setupDone %> de 4 etapas concluídas">
+        <span style="width:<%= setupDone/4*100 %>%"></span>
+      </div>
+      <ol class="setup-list">
+        <li class="done"><span>✓</span><div><strong>Loja criada</strong><small>Nome e endereço configurados</small></div></li>
+        <li class="<%= categories.length?'done':'' %>"><span><%= categories.length?'✓':'2' %></span><div><strong>Crie uma categoria</strong><small>Organize produtos em pratos, bebidas ou lanches</small></div><a href="#categorias"><%= categories.length?'Revisar':'Criar' %></a></li>
+        <li class="<%= products.length?'done':'' %>"><span><%= products.length?'✓':'3' %></span><div><strong>Cadastre um produto</strong><small>Adicione nome, preço, foto e opções</small></div><a href="#produtos"><%= products.length?'Revisar':'Cadastrar' %></a></li>
+        <li><span>4</span><div><strong>Revise e publique</strong><small>Confira a prévia antes de abrir para clientes</small></div><a href="/previa" target="_blank">Abrir prévia</a></li>
+      </ol>
+      <% if(canPublish){ %>
+        <form action="/painel/loja/publicacao" method="post" class="setup-publish">
+          <%- include('csrf') %>
+          <input type="hidden" name="action" value="publicar">
+          <button>Publicar cardápio agora</button>
+        </form>
+      <% } %>
+    </section>
+  <% } %>
+
+  <section class="control-strip" aria-label="Operação da loja">
+    <div>
+      <span class="eyebrow">OPERAÇÃO</span>
+      <strong><%= store.taking&&store.published?'Novos pedidos estão liberados':'Novos pedidos não estão entrando' %></strong>
+      <small><%= store.published?(store.taking?'Pause quando encerrar o atendimento.':'Abra quando estiver pronto para atender.'):'Publique o cardápio para abrir pedidos.' %></small>
+    </div>
+    <form action="/painel/loja/recebimento" method="post" <%= store.published&&store.taking?'data-confirm="Pausar a entrada de novos pedidos? Os pedidos atuais continuam disponíveis."':'' %>>
+      <%- include('csrf') %>
+      <input type="hidden" name="action" value="<%= store.taking?'pausar':'abrir' %>">
+      <button class="<%= store.taking?'outline':'' %>" <%= store.published?'':'disabled' %>>
+        <%= store.published?(store.taking?'Pausar novos pedidos':'Abrir pedidos'):'Disponível após publicar' %>
+      </button>
+    </form>
+  </section>
+
+  <section class="summary-grid" aria-label="Resumo da loja">
+    <a href="#produtos"><strong><%= products.length %></strong><span>Produtos</span><small><%= products.filter(p=>p.available).length %> disponíveis</small></a>
+    <a href="#categorias"><strong><%= categories.length %></strong><span>Categorias</span><small>Ordem do cardápio</small></a>
+    <a href="#mesas"><strong><%= tables.length %></strong><span>Mesas</span><small>QR Codes permanentes</small></a>
+    <a href="#equipe"><strong><%= Math.max(0,team.length-1) %></strong><span>Funcionários</span><small>Caixa e cozinha</small></a>
+  </section>
+
+  <nav class="owner-nav" aria-label="Configurações da loja">
+    <a href="#inicio">Visão geral</a>
+    <a href="#categorias">Categorias</a>
+    <a href="#produtos">Produtos</a>
+    <a href="#mesas">Mesas e QR</a>
+    <a href="#equipe">Equipe</a>
+    <a href="#config">Configurações</a>
+  </nav>
+
+  <section id="categorias" class="panel owner-section">
+    <div class="section-heading">
+      <div><span class="eyebrow">CARDÁPIO</span><h2>Categorias</h2><p>Defina as seções e a ordem em que o cliente verá os produtos.</p></div>
+      <span class="count-badge"><%= categories.length %> cadastradas</span>
+    </div>
+    <% if(categories.length){ %>
+      <div class="manage-list">
+        <% for(const c of categories){ %>
+          <form action="/painel/loja/categorias" method="post" class="manage-row">
+            <%- include('csrf') %><input type="hidden" name="id" value="<%= c.id %>">
+            <label>Nome<input required name="name" value="<%= c.name %>"></label>
+            <label class="small-field">Ordem<input type="number" min="0" required name="position" value="<%= c.position %>"></label>
+            <button class="outline">Salvar</button>
+          </form>
+        <% } %>
+      </div>
+    <% }else{ %>
+      <div class="empty-state"><strong>Nenhuma categoria ainda</strong><p>Comece com uma categoria como “Lanches”, “Pratos” ou “Bebidas”.</p></div>
+    <% } %>
+    <form action="/painel/loja/categorias" method="post" class="create-row">
+      <%- include('csrf') %>
+      <label>Nova categoria<input required name="name" placeholder="Ex.: Lanches"></label>
+      <label class="small-field">Ordem<input type="number" min="0" required name="position" value="<%= categories.length %>"></label>
+      <button>Criar categoria</button>
+    </form>
+  </section>
+
+  <section id="produtos" class="panel owner-section">
+    <div class="section-heading">
+      <div><span class="eyebrow">CARDÁPIO</span><h2>Produtos</h2><p>Gerencie preços, fotos, adicionais e disponibilidade.</p></div>
+      <span class="count-badge"><%= products.length %> cadastrados</span>
+    </div>
+    <% if(!categories.length){ %>
+      <div class="empty-state"><strong>Crie uma categoria primeiro</strong><p>Todo produto precisa pertencer a uma categoria.</p><a href="#categorias">Ir para categorias</a></div>
+    <% }else{ %>
+      <details class="create-product" <%= products.length?'':'open' %>>
+        <summary>＋ Adicionar produto</summary>
+        <%- include('product-form',{p:{},categories,json}) %>
+      </details>
+      <% if(products.length){ %>
+        <div class="product-admin-grid">
+          <% for(const p of products){ %>
+            <article class="product-admin-card">
+              <% if(p.image){ %><img src="/img/<%= p.image %>" alt=""><% }else{ %><div class="image-placeholder" aria-hidden="true">Sem foto</div><% } %>
+              <div class="product-admin-body">
+                <div class="product-title-row"><h3><%= p.name %></h3><span class="status-chip <%= p.available?'status-live':'status-paused' %>"><%= p.available?'Disponível':'Pausado' %></span></div>
+                <p><%= p.description||'Sem descrição' %></p>
+                <strong><%= money(p.promo??p.price) %></strong>
+                <% if(p.promo!=null){ %><small><del><%= money(p.price) %></del> preço promocional</small><% } %>
+              </div>
+              <div class="product-admin-actions">
+                <details><summary>Editar produto</summary><%- include('product-form',{p,categories,json}) %></details>
+                <form action="/painel/loja/disponibilidade" method="post">
+                  <%- include('csrf') %><input type="hidden" name="id" value="<%= p.id %>">
+                  <button class="quiet"><%= p.available?'Pausar produto':'Disponibilizar' %></button>
+                </form>
+              </div>
+            </article>
+          <% } %>
+        </div>
+      <% } %>
+    <% } %>
+  </section>
+
+  <section id="mesas" class="panel owner-section">
+    <div class="section-heading">
+      <div><span class="eyebrow">ATENDIMENTO</span><h2>Mesas e balcão</h2><p>Os QR Codes continuam válidos quando você renomeia a mesa ou altera produtos.</p></div>
+      <a class="outline" href="/l/<%= store.slug %>" target="_blank">Abrir modo balcão</a>
+    </div>
+    <% if(tables.length){ %>
+      <div class="manage-list">
+        <% for(const t of tables){ %>
+          <form class="manage-row table-row" action="/painel/loja/mesas" method="post">
+            <%- include('csrf') %><input name="id" type="hidden" value="<%= t.id %>">
+            <label>Identificação<input name="name" required value="<%= t.name %>"></label>
+            <button class="outline">Salvar nome</button>
+            <a class="outline" href="/painel/qr/<%= t.id %>">Baixar QR</a>
+            <a href="/m/<%= t.token %>" target="_blank">Testar mesa</a>
+          </form>
+        <% } %>
+      </div>
+    <% }else{ %>
+      <div class="empty-state"><strong>Nenhuma mesa cadastrada</strong><p>Crie a primeira mesa para gerar um QR Code.</p></div>
+    <% } %>
+    <form class="create-row" action="/painel/loja/mesas" method="post">
+      <%- include('csrf') %><label>Nova mesa<input name="name" required placeholder="Ex.: Mesa 1"></label><button>Criar mesa</button>
+    </form>
+  </section>
+
+  <section class="panel owner-section" id="equipe">
+    <div class="section-heading">
+      <div><span class="eyebrow">ACESSOS</span><h2>Equipe</h2><p>Crie acessos separados para o caixa e a cozinha.</p></div>
+      <span class="count-badge"><%= team.length %> usuários</span>
+    </div>
+    <div class="team-list">
+      <% for(const u of team){ %>
+        <div class="team-member"><span class="avatar" aria-hidden="true"><%= u.name.charAt(0).toUpperCase() %></span><div><strong><%= u.name %></strong><small><%= u.email %> · <%= u.role %></small></div>
+          <% if(u.role!=='dono'){ %><form action="/painel/loja/remover-acesso" method="post" data-confirm="Remover o acesso deste funcionário?"><%- include('csrf') %><input name="id" type="hidden" value="<%= u.id %>"><button class="quiet danger">Remover</button></form><% } %>
+        </div>
+      <% } %>
+    </div>
+    <details class="create-product"><summary>＋ Cadastrar funcionário</summary>
+      <form action="/painel/loja/equipe" method="post" class="form-grid"><%- include('csrf') %>
+        <label>Nome<input required name="name"></label><label>E-mail<input required type="email" name="email"></label>
+        <label>Senha inicial<input required type="password" minlength="10" name="password"></label>
+        <label>Perfil<select name="role"><option value="caixa">Caixa</option><option value="cozinha">Cozinha</option></select></label>
+        <button>Criar acesso</button>
       </form>
-    </details><% if(p.id){ %><form action="/painel/loja/disponibilidade" method="post"><%- include('csrf') %><input
-        type="hidden" name="id" value="<%= p.id %>"><button class="quiet"><%= p.available?'Pausar':'Disponibilizar' %>
-        <%= p.name %></button></form><% } } } %>
-  </section>
-  <section id="mesas" class="panel">
-    <h2>Mesas e balcão</h2><a href="/l/<%= store.slug %>">Abrir tablet do balcão
-      ↗</a><% for(const t of [...tables,{}]){ %><form class="row" action="/painel/loja/mesas" method="post">
-      <%- include('csrf') %><input name="id" type="hidden" value="<%= t.id %>"><label>Mesa<input name="name" required
-          value="<%= t.name %>"
-          placeholder="Mesa 1"></label><button><%= t.id?'Salvar':'Criar mesa' %></button><% if(t.id){ %><a
-        class="outline" href="/painel/qr/<%= t.id %>">Baixar QR Code</a><a href="/m/<%= t.token %>">Abrir
-        mesa</a><% } %></form><% } %>
-  </section>
-  <section class="panel" id="equipe">
-    <h2>Equipe</h2><% for(const u of team){ %><div class="row">
-      <p><strong><%= u.name %></strong> · <%= u.role %> · <%= u.email %></p><% if(u.role!=='dono'){ %><form
-        action="/painel/loja/remover-acesso" method="post"><%- include('csrf') %><input name="id" type="hidden"
-          value="<%= u.id %>"><button class="quiet">Remover acesso</button></form><% } %>
-    </div><% } %><details>
-      <summary>＋ Cadastrar funcionário</summary>
-      <form action="/painel/loja/equipe" method="post"><%- include('csrf') %><label>Nome<input required
-            name="name"></label><label>E-mail<input required type="email" name="email"></label><label>Senha
-          inicial<input required type="password" minlength="10" name="password"></label><label>Perfil<select
-            name="role">
-            <option>caixa</option>
-            <option>cozinha</option>
-          </select></label><button>Criar acesso</button></form>
     </details>
   </section>
-  <section id="config" class="panel">
-    <h2>Configurações</h2>
-    <form action="/painel/loja/config" method="post" enctype="multipart/form-data"><%- include('csrf') %><label>Nome da
-        loja<input required name="name" value="<%= store.name %>"></label><label>Endereço curto<input required
-          name="slug" value="<%= store.slug %>"></label><label>Logo até 5 MB<input type="file" name="image"
-          accept="image/jpeg,image/png,image/webp"></label><label>Fuso horário<input required name="zone"
-          value="<%= store.zone %>"></label>
-      <div class="row">
-        <% for(const [key,title] of [['opens','Abertura diária'],['closes','Fechamento diário']]){ %><label><%= title %><input
-            type="time" required name="<%= key %>" value="<%= store[key].slice(0,5) %>"></label><% } %></div>
-      <small>Horários iguais permitem atendimento 24
-        horas.</small><% for(const [key,title] of [['tables_enabled','Aceitar pedidos de mesa'],['kiosk_enabled','Aceitar pedidos do balcão'],['taking','Recebimento aberto'],['published','Publicar cardápio']]){ %><label
-        class="check"><input type="checkbox" name="<%= key %>"
-          <%= store[key]?'checked':'' %>><%= title %></label><% } for(const [key,title] of [['table_pay','Pagamento na mesa'],['kiosk_pay','Pagamento no balcão']]){ %><label><%= title %><select
-          name="<%= key %>"><% for(const v of ['antes','depois']){ %><option <%= store[key]===v?'selected':'' %>
-            value="<%= v %>">Pagar <%= v %> do preparo</option><% } %></select></label><% } %><button>Salvar
-        configurações</button>
+
+  <section id="config" class="panel owner-section">
+    <div class="section-heading">
+      <div><span class="eyebrow">PREFERÊNCIAS</span><h2>Configurações da loja</h2><p>Informações, horários, canais e regras de pagamento.</p></div>
+    </div>
+    <form action="/painel/loja/config" method="post" enctype="multipart/form-data">
+      <%- include('csrf') %>
+      <div class="settings-grid">
+        <fieldset>
+          <legend>Identidade da loja</legend>
+          <label>Nome da loja<input required name="name" value="<%= store.name %>"></label>
+          <label>Endereço do cardápio<div class="input-prefix"><span>/l/</span><input required name="slug" value="<%= store.slug %>"></div></label>
+          <label>Logo da loja<input type="file" name="image" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG ou WebP de até 5 MB.</small></label>
+          <label>Fuso horário<input required name="zone" value="<%= store.zone %>"></label>
+        </fieldset>
+        <fieldset>
+          <legend>Horários e canais</legend>
+          <div class="row">
+            <label>Abertura diária<input type="time" required name="opens" value="<%= store.opens.slice(0,5) %>"></label>
+            <label>Fechamento diário<input type="time" required name="closes" value="<%= store.closes.slice(0,5) %>"></label>
+          </div>
+          <small>Horários iguais permitem atendimento 24 horas.</small>
+          <label class="switch-row"><span><strong>Pedidos nas mesas</strong><small>Clientes entram pelo QR Code</small></span><input type="checkbox" name="tables_enabled" <%= store.tables_enabled?'checked':'' %>></label>
+          <label class="switch-row"><span><strong>Pedidos no balcão</strong><small>Tablet compartilhado ou retirada</small></span><input type="checkbox" name="kiosk_enabled" <%= store.kiosk_enabled?'checked':'' %>></label>
+        </fieldset>
+        <fieldset>
+          <legend>Pagamento presencial</legend>
+          <label>Pedidos das mesas<select name="table_pay"><% for(const v of ['antes','depois']){ %><option <%= store.table_pay===v?'selected':'' %> value="<%= v %>">Pagar <%= v %> do preparo</option><% } %></select></label>
+          <label>Pedidos do balcão<select name="kiosk_pay"><% for(const v of ['antes','depois']){ %><option <%= store.kiosk_pay===v?'selected':'' %> value="<%= v %>">Pagar <%= v %> do preparo</option><% } %></select></label>
+          <p class="form-help">O caixa registra manualmente dinheiro, Pix presencial ou cartão na maquininha.</p>
+        </fieldset>
+      </div>
+      <div class="form-footer"><p>Publicação e abertura de pedidos são controladas no topo desta página.</p><button>Salvar configurações</button></div>
     </form>
   </section>
 </main>
 <script defer src="/assets/options.js"></script>
 </body>
-
 </html>

@@ -400,25 +400,28 @@ test('13 · Dono configura grupo de adicionais pelo formulário no navegador', a
     const page = await ctx.newPage()
     await page.goto('/painel/loja')
     const cat = page.locator('#categorias form').last()
-    await cat.getByLabel('Nome').fill('Sobremesas')
+    await cat.getByLabel('Nova categoria').fill('Sobremesas')
     await cat.getByText('Criar categoria').click()
     await page.getByText('Cadastrar produto', { exact: false }).click()
     const form = page.locator('#produtos details form').first()
-    await form.getByLabel('Nome', { exact: true }).fill('Sorvete')
-    await form.getByLabel('Preço (R$)', { exact: true }).fill('10,00')
+    await form.getByLabel('Nome do produto', { exact: true }).fill('Sorvete')
+    await form.getByLabel('Preço normal (R$)', { exact: true }).fill('10,00')
     await form.getByText('Adicionar grupo', { exact: false }).click()
     await form.getByLabel('Nome do grupo').fill('Cobertura')
     await form.getByLabel('Opção', { exact: true }).fill('Chocolate')
     await form.getByLabel('Adicional (R$)').fill('1,50')
-    await form.getByText('Salvar produto').click()
-    await page.getByText('Pausar Sorvete').waitFor()
+    await form.getByText('Cadastrar produto').click()
+    await page.getByRole('heading', { name: 'Sorvete' }).waitFor()
+    await page.getByRole('button', { name: 'Publicar cardápio', exact: true }).click()
+    await page.getByText('Cardápio publicado. O link da loja já pode receber visitantes.').waitFor()
     const saved = await one(
-      'SELECT p.groups_json FROM products p JOIN stores s ON s.id=p.store_id WHERE s.slug=?',
+      'SELECT p.groups_json,s.published FROM products p JOIN stores s ON s.id=p.store_id WHERE s.slug=?',
       [owner.slug],
     )
     const [group] = json(saved.groups_json)
     assert.equal(group.name, 'Cobertura')
     assert.equal(group.options[0].price, 150)
+    assert.equal(saved.published, 1)
   } finally {
     await browser.close()
   }

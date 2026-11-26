@@ -9,6 +9,11 @@ document.querySelector('.peek')?.addEventListener('click', (e) => {
     field.type === 'text' ? 'Ocultar senha' : 'Mostrar senha',
   )
 })
+document.querySelectorAll('form[data-confirm]').forEach((form) => {
+  form.addEventListener('submit', (event) => {
+    if (!confirm(form.dataset.confirm)) event.preventDefault()
+  })
+})
 const sync = document.querySelector('#sync')
 if (sync) {
   const ids = () => [...document.querySelectorAll('.order')].map((el) => el.dataset.id)

@@ -48,7 +48,21 @@ staff.get('/loja', access('dono'), async (req, res) => {
     query('SELECT * FROM tables_rest WHERE store_id=? ORDER BY id', [id]),
     query('SELECT id,name,email,role FROM users WHERE store_id=?', [id]),
   ])
-  res.render('owner', { store, categories, products, tables, team, json })
+  const notices = {
+    publicado: 'Cardápio publicado. O link da loja já pode receber visitantes.',
+    oculto: 'Cardápio retirado do ar. Os dados e pedidos foram preservados.',
+    aberto: 'Recebimento de novos pedidos aberto.',
+    pausado: 'Novos pedidos pausados. A equipe ainda pode concluir os pedidos em andamento.',
+  }
+  res.render('owner', {
+    store,
+    categories,
+    products,
+    tables,
+    team,
+    json,
+    notice: notices[req.query.notice],
+  })
 })
 staff.post('/loja/:section', access('dono'), async (req, res) => {
   const s = req.user.store_id,
@@ -56,7 +70,21 @@ staff.post('/loja/:section', access('dono'), async (req, res) => {
     section = req.params.section
   await transaction(async (db) => {
     const store = await one('SELECT * FROM stores WHERE id=? FOR UPDATE', [s], db)
-    if (section === 'config') {
+    if (section === 'publicacao') {
+      check(['publicar', 'ocultar'].includes(d.action), 'Ação inválida.')
+      if (d.action === 'publicar') {
+        check(
+          await one('SELECT id FROM products WHERE store_id=? LIMIT 1', [s], db),
+          'Cadastre pelo menos um produto antes de publicar.',
+        )
+      }
+      await query('UPDATE stores SET published=? WHERE id=?', [d.action === 'publicar', s], db)
+    } else if (section === 'recebimento') {
+      check(['abrir', 'pausar'].includes(d.action), 'Ação inválida.')
+      if (d.action === 'abrir')
+        check(store.published, 'Publique o cardápio antes de abrir pedidos.')
+      await query('UPDATE stores SET taking=? WHERE id=?', [d.action === 'abrir', s], db)
+    } else if (section === 'config') {
       check(IANAZone.isValidZone(d.zone), 'Fuso inválido.')
       check(
         [d.opens, d.closes].every((t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t)),
@@ -72,8 +100,8 @@ staff.post('/loja/:section', access('dono'), async (req, res) => {
           d.zone,
           d.opens,
           d.closes,
-          +!!d.published,
-          +!!d.taking,
+          d.published === undefined ? store.published : +!!d.published,
+          d.taking === undefined ? store.taking : +!!d.taking,
           +!!d.tables_enabled,
           +!!d.kiosk_enabled,
           d.table_pay,
@@ -132,7 +160,17 @@ staff.post('/loja/:section', access('dono'), async (req, res) => {
       )
     } else check(false, 'Seção desconhecida.', 404)
   })
-  res.redirect('/painel/loja#' + section)
+  const notice =
+    section === 'publicacao'
+      ? d.action === 'publicar'
+        ? 'publicado'
+        : 'oculto'
+      : section === 'recebimento'
+        ? d.action === 'abrir'
+          ? 'aberto'
+          : 'pausado'
+        : null
+  res.redirect(notice ? '/painel/loja?notice=' + notice : '/painel/loja#' + section)
 })
 staff.get('/qr/:id', access('dono'), async (req, res) => {
   const t = await one('SELECT token FROM tables_rest WHERE id=? AND store_id=?', [
