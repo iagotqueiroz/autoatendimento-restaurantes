@@ -20,6 +20,6 @@
 </section>
 
 <section class="panel visit-payment">
-  <div><span class="eyebrow">PAGAMENTO</span><h2><%= account.due?'Pagamento no atendimento':'Conta paga' %></h2><p><%= account.due?'Por enquanto, finalize o saldo com a equipe. O pagamento online será liberado depois que o restaurante conectar a própria conta de recebimento.':'Não há saldo pendente nesta conta.' %></p></div>
-  <div class="visit-payment-value"><small>Saldo atual</small><strong><%= money(account.due) %></strong><button disabled title="Disponível após o restaurante conectar a conta de recebimento">Pagar online em breve</button></div>
+  <div><span class="eyebrow">PAGAMENTO</span><h2><%= account.due?'Pague sua conta':'Conta paga' %></h2><p><%= account.due?(account.paymentOnline?'Finalize com Pix ou cartão no ambiente seguro do Mercado Pago.':'Finalize o saldo com a equipe. Este restaurante ainda não habilitou o pagamento online.'):'Não há saldo pendente nesta conta.' %></p></div>
+  <div class="visit-payment-value"><small>Saldo atual</small><strong><%= money(account.due) %></strong><% if(account.due&&account.paymentOnline){ %><form action="/conta/<%= account.visit.token %>/pagar" method="post"><%- include('csrf') %><button>Pagar com Pix ou cartão</button></form><% }else if(account.due){ %><button disabled>Pagamento online indisponível</button><% } %></div>
 </section>

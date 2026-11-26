@@ -115,6 +115,15 @@ export async function order(storeId, tableToken, input) {
         visit = { id: result.insertId, token: visitToken }
       }
     }
+    if (!visit) {
+      const visitToken = randomBytes(32).toString('hex')
+      const result = await query(
+        'INSERT INTO visits(store_id,table_id,token,channel,mode) VALUES(?,?,?,?,?)',
+        [storeId, null, visitToken, 'totem', input.mode],
+        db,
+      )
+      visit = { id: result.insertId, token: visitToken }
+    }
     const policy = table ? store.table_pay : store.kiosk_pay,
       token = randomBytes(32).toString('hex')
     const r = await query(

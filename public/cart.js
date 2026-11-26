@@ -207,6 +207,8 @@ function review(message = '') {
               : 'Aguarde o chamado da equipe para retirar.',
             done,
           )
+          if (result.visit)
+            button('Pagar com Pix ou cartão', () => location.assign('/conta/' + result.visit), done)
           button('Concluir e voltar ao início', () => location.replace(menu.dataset.base), done)
           let seconds = 20
           const counter = el('p', 'Reinício em 20 s', done)

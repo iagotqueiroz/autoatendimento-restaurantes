@@ -27,6 +27,9 @@ async function start() {
       PUBLIC_URL: base,
       NODE_ENV: 'test',
       TRUST_PROXY: '0',
+      MP_MARKETPLACE_CLIENT_ID: '123456789',
+      MP_MARKETPLACE_CLIENT_SECRET: 'segredo-de-teste',
+      PAYMENT_TOKEN_ENCRYPTION_KEY: '1'.repeat(64),
     },
     stdio: ['ignore', 'pipe', 'inherit'],
   })
@@ -599,5 +602,99 @@ test('16 · Erro do Mercado Pago é traduzido sem expor o token', async () => {
   } finally {
     global.fetch = originalFetch
     delete process.env.MERCADO_PAGO_ACCESS_TOKEN
+  }
+})
+
+test('17 · Dono inicia conexão OAuth sem copiar token do restaurante', async () => {
+  const owner = await signup('oauth')
+  const page = await owner.ctx.get('/painel/loja/configuracoes')
+  assert.equal(page.status(), 200)
+  assert.match(await page.text(), /Conectar Mercado Pago/)
+  const response = await owner.ctx.post('/pagamentos/mercado-pago/conectar', {
+    form: { _csrf: owner.token },
+    maxRedirects: 0,
+  })
+  assert.equal(response.status(), 303)
+  const destination = new URL(response.headers().location)
+  assert.equal(destination.origin, 'https://auth.mercadopago.com')
+  assert.equal(destination.searchParams.get('client_id'), '123456789')
+  assert.equal(destination.searchParams.get('response_type'), 'code')
+  assert.equal(
+    destination.searchParams.get('redirect_uri'),
+    base + '/pagamentos/mercado-pago/retorno',
+  )
+  assert.match(destination.searchParams.get('state'), /^[a-f0-9]{64}$/)
+})
+
+test('18 · Token conectado é cifrado e autenticado', async () => {
+  process.env.PAYMENT_TOKEN_ENCRYPTION_KEY = '2'.repeat(64)
+  const { seal, open } = await import('../src/secrets.js')
+  const protectedValue = seal('APP_USR-token-do-restaurante')
+  assert.doesNotMatch(protectedValue, /token-do-restaurante/)
+  assert.equal(open(protectedValue), 'APP_USR-token-do-restaurante')
+  const parts = protectedValue.split('.')
+  parts[3] = (parts[3][0] === 'A' ? 'B' : 'A') + parts[3].slice(1)
+  assert.throws(() => open(parts.join('.')))
+})
+
+test('19 · Confirmação online paga somente os pedidos congelados no checkout', async () => {
+  process.env.PAYMENT_TOKEN_ENCRYPTION_KEY = '2'.repeat(64)
+  const { seal } = await import('../src/secrets.js')
+  const candidate = await one(
+    "SELECT o.*,v.token AS visit_token FROM orders o JOIN visits v ON v.id=o.visit_id WHERE o.payment='pendente' AND o.stage<>'cancelado' ORDER BY o.id DESC LIMIT 1",
+  )
+  assert.ok(candidate)
+  const existingAccount = await one(
+    "SELECT external_user_id FROM store_payment_accounts WHERE store_id=? AND provider='mercado_pago'",
+    [candidate.store_id],
+  )
+  const providerUserId = existingAccount?.external_user_id || String(Date.now())
+  await query(
+    "INSERT INTO store_payment_accounts(store_id,provider,external_user_id,access_token_encrypted,status) VALUES(?,'mercado_pago',?,?,'conectada') ON DUPLICATE KEY UPDATE external_user_id=VALUES(external_user_id),access_token_encrypted=VALUES(access_token_encrypted),status='conectada'",
+    [candidate.store_id, providerUserId, seal('APP_USR-restaurante')],
+  )
+  const checkoutId = randomUUID()
+  await query(
+    "INSERT INTO order_payment_checkouts(id,store_id,visit_id,provider,status,amount) VALUES(?,?,?,'mercado_pago','checkout',?)",
+    [checkoutId, candidate.store_id, candidate.visit_id, candidate.total],
+  )
+  await query('INSERT INTO order_payment_items(checkout_id,order_id,amount) VALUES(?,?,?)', [
+    checkoutId,
+    candidate.id,
+    candidate.total,
+  ])
+  const originalFetch = global.fetch
+  const paymentId = String(Date.now() + 1)
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      id: Number(paymentId),
+      status: 'approved',
+      currency_id: 'BRL',
+      transaction_amount: candidate.total / 100,
+      collector_id: Number(providerUserId),
+      external_reference: checkoutId,
+      payment_method_id: 'pix',
+      date_approved: '2026-11-26T15:00:00-03:00',
+    }),
+  })
+  try {
+    const { processOrderPayment } = await import('../src/payments.js')
+    await processOrderPayment(paymentId, providerUserId)
+    await processOrderPayment(paymentId, providerUserId)
+    assert.deepEqual(
+      await one('SELECT payment,method,cashier FROM orders WHERE id=?', [candidate.id]),
+      { payment: 'pago', method: 'pix', cashier: 'Mercado Pago' },
+    )
+    assert.equal(
+      (await one('SELECT credited FROM order_payment_checkouts WHERE id=?', [checkoutId])).credited,
+      1,
+    )
+    assert.match(
+      await (await client.ctx.get('/conta/' + candidate.visit_token)).text(),
+      /Pagar com Pix ou cartão|Conta paga/,
+    )
+  } finally {
+    global.fetch = originalFetch
   }
 })

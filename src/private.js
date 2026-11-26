@@ -7,6 +7,7 @@ import { slug, email, hash } from './accounts.js'
 import { saveProduct, imageId } from './catalog.js'
 import { change } from './orders.js'
 import { hasAccess } from './billing.js'
+import { marketplaceReady } from './payments.js'
 export const staff = express.Router()
 export const access =
   (...roles) =>
@@ -55,12 +56,16 @@ staff.get(['/loja', '/loja/:area'], access('dono'), async (req, res) => {
     'Página não encontrada.',
     404,
   )
-  const [store, categories, products, tables, team] = await Promise.all([
+  const [store, categories, products, tables, team, paymentAccount] = await Promise.all([
     one('SELECT * FROM stores WHERE id=?', [id]),
     query('SELECT * FROM categories WHERE store_id=? ORDER BY position,id', [id]),
     query('SELECT * FROM products WHERE store_id=? ORDER BY id DESC', [id]),
     query('SELECT * FROM tables_rest WHERE store_id=? ORDER BY id', [id]),
     query('SELECT id,name,email,role FROM users WHERE store_id=?', [id]),
+    one(
+      'SELECT external_user_id,status,updated FROM store_payment_accounts WHERE store_id=? AND provider=?',
+      [id, 'mercado_pago'],
+    ),
   ])
   const notices = {
     publicado: 'Cardápio publicado. O link da loja já pode receber visitantes.',
@@ -77,6 +82,9 @@ staff.get(['/loja', '/loja/:area'], access('dono'), async (req, res) => {
     json,
     notice: notices[req.query.notice],
     area,
+    paymentAccount,
+    marketplaceReady: marketplaceReady(),
+    paymentResult: req.query.payment,
   })
 })
 staff.post('/loja/:section', access('dono'), async (req, res) => {

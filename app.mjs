@@ -12,6 +12,7 @@ import { register, email } from './src/accounts.js'
 import { staff } from './src/private.js'
 import { order, accepting } from './src/orders.js'
 import { billing, plan } from './src/billing.js'
+import { payments } from './src/payments.js'
 const app = express(),
   prod = process.env.NODE_ENV === 'production'
 check(
@@ -94,7 +95,10 @@ async function start() {
     next()
   })
   app.use((req, res, next) => {
-    if (req.method === 'POST' && req.path !== '/webhooks/mercado-pago')
+    if (
+      req.method === 'POST' &&
+      !['/webhooks/mercado-pago', '/webhooks/mercado-pago/pedidos'].includes(req.path)
+    )
       check(
         (req.get('x-csrf-token') || req.body?._csrf) === req.session.csrf,
         'Sessão expirada. Recarregue a página.',
@@ -142,6 +146,7 @@ async function start() {
     req.session.destroy((err) => (err ? next(err) : res.clearCookie('mesa.sid').redirect('/'))),
   )
   app.use('/', billing)
+  app.use('/', payments)
   app.use('/painel', staff)
   app.get('/img/:id', async (req, res) => {
     const img = await one('SELECT data FROM images WHERE id=?', [req.params.id])
@@ -274,6 +279,10 @@ async function start() {
     const paid = valid
       .filter((order) => order.payment === 'pago')
       .reduce((sum, order) => sum + order.total, 0)
+    const paymentAccount = await one(
+      "SELECT id FROM store_payment_accounts WHERE store_id=? AND provider='mercado_pago' AND status='conectada'",
+      [visit.store_id],
+    )
     return {
       visit,
       orders,
@@ -281,6 +290,7 @@ async function start() {
       paid,
       due: Math.max(0, total - paid),
       orderAgain: visit.table_token ? '/m/' + visit.table_token : '/l/' + visit.slug,
+      paymentOnline: Boolean(paymentAccount),
     }
   }
   app.get('/conta/:token', async (req, res) => {

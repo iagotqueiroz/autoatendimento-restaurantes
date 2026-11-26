@@ -2356,6 +2356,43 @@ section[id] {
 .visit-payment-value button {
   width: 100%;
 }
+.payment-connect {
+  margin-bottom: 20px;
+}
+.payment-connect .section-heading,
+.payment-connect-flow,
+.payment-account-ok {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.payment-connect-flow,
+.payment-account-ok {
+  padding: 20px;
+  border-radius: 16px;
+  background: #f2f7f4;
+}
+.payment-connect-flow p,
+.payment-account-ok p {
+  margin: 5px 0 0;
+  color: #617168;
+}
+.payment-account-ok > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: #fff;
+  background: #218556;
+  font-size: 22px;
+  font-weight: 800;
+}
+.payment-account-ok {
+  justify-content: flex-start;
+}
 
 @media (max-width: 700px) {
   .receipt-main {
@@ -2430,6 +2467,14 @@ section[id] {
   .visit-payment-value {
     min-width: 0;
     text-align: left;
+  }
+  .payment-connect .section-heading,
+  .payment-connect-flow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .payment-connect-flow button {
+    width: 100%;
   }
 }
 

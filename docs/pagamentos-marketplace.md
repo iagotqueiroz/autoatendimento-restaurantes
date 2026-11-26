@@ -54,6 +54,7 @@ Depois serão configuradas na Hostinger, sem compartilhar os valores:
 MP_MARKETPLACE_CLIENT_ID=...
 MP_MARKETPLACE_CLIENT_SECRET=...
 PAYMENT_TOKEN_ENCRYPTION_KEY=...
+MARKETPLACE_FEE_PERCENT=0
 ```
 
 A URL pública já existente (`PUBLIC_URL`) será usada para montar retorno e webhook. Credenciais de teste devem ser usadas até a homologação completa; produção só será ativada depois de testar pagamento aprovado, recusado, expirado, duplicado, estornado e webhook fora de ordem.
@@ -61,10 +62,10 @@ A URL pública já existente (`PUBLIC_URL`) será usada para montar retorno e we
 ## Etapas de implementação
 
 1. Conta unificada da mesa e isolamento do totem.
-2. Cadastro da aplicação marketplace e conexão OAuth do restaurante.
-3. Cofre cifrado de credenciais e tela de estado da conexão.
-4. Intenção de pagamento com snapshot dos pedidos e checkout hospedado.
-5. Webhook verificado e baixa automática.
+2. Cadastro da aplicação marketplace e conexão OAuth do restaurante. **Implementado.**
+3. Cofre cifrado de credenciais e tela de estado da conexão. **Implementado.**
+4. Intenção de pagamento com snapshot dos pedidos e checkout hospedado. **Implementado.**
+5. Webhook verificado e baixa automática. **Implementado; requer homologação real.**
 6. Estornos, conciliação, relatórios e tarifa automática da plataforma.
 
 O pagamento presencial atual continua disponível durante a implantação. O botão online só é liberado para restaurantes conectados e homologados.

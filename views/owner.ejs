@@ -224,6 +224,21 @@
   <% } %>
 
   <% if(area==='configuracoes'){ %>
+  <% if(paymentResult==='connected'){ %><div class="notice">Mercado Pago conectado. A conta do restaurante está pronta para a próxima etapa.</div><% } %>
+  <% if(paymentResult==='cancelled'){ %><div class="notice">A conexão foi cancelada. Nenhuma credencial foi salva.</div><% } %>
+  <section class="panel owner-section payment-connect">
+    <div class="section-heading">
+      <div><span class="eyebrow">PAGAMENTOS ONLINE</span><h2>Recebimento do restaurante</h2><p>O dinheiro vai diretamente para a conta Mercado Pago deste restaurante.</p></div>
+      <% if(paymentAccount){ %><span class="status-chip status-live"><span class="status-dot"></span>Conectado</span><% }else{ %><span class="status-chip status-draft">Não conectado</span><% } %>
+    </div>
+    <% if(paymentAccount){ %>
+      <div class="payment-account-ok"><span>✓</span><div><strong>Conta Mercado Pago autorizada</strong><p>Identificação final <%= paymentAccount.external_user_id.slice(-6) %>. Os tokens ficam cifrados e não são exibidos para a equipe.</p></div></div>
+    <% }else if(marketplaceReady){ %>
+      <div class="payment-connect-flow"><div><strong>Conexão segura e individual</strong><p>Clique abaixo neste dispositivo. Você entrará no Mercado Pago e autorizará a Mesa Aberta sem copiar tokens.</p></div><form action="/pagamentos/mercado-pago/conectar" method="post"><%- include('csrf') %><button>Conectar Mercado Pago</button></form></div>
+    <% }else{ %>
+      <div class="billing-alert">A aplicação marketplace da Mesa Aberta ainda precisa ser configurada pelo administrador. O restaurante não precisa fornecer tokens.</div>
+    <% } %>
+  </section>
   <section id="config" class="panel owner-section">
     <div class="section-heading">
       <div><span class="eyebrow">PREFERÊNCIAS</span><h2>Configurações da loja</h2><p>Informações, horários, canais e regras de pagamento.</p></div>
