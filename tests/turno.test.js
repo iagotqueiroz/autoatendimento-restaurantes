@@ -441,6 +441,10 @@ test('14 · Landing page e bloqueio até a confirmação do pagamento', async ()
   assert.equal(home.status(), 200)
   assert.match(await home.text(), /Menos espera/)
   assert.match(await home.text(), /R\$\s*89,90/)
+  assert.match(
+    home.headers()['content-security-policy'],
+    /form-action 'self' https:\/\/mercadopago\.com\.br https:\/\/\*\.mercadopago\.com\.br/,
+  )
   const slug = 'pagamento-' + suffix
   const response = await visitor.post('/cadastro', {
     form: {

@@ -32,7 +32,18 @@ async function start() {
   app.set('view engine', 'ejs')
   app.use(
     helmet({
-      contentSecurityPolicy: { directives: { 'upgrade-insecure-requests': prod ? [] : null } },
+      contentSecurityPolicy: {
+        directives: {
+          'form-action': [
+            "'self'",
+            'https://mercadopago.com.br',
+            'https://*.mercadopago.com.br',
+            'https://mercadopago.com',
+            'https://*.mercadopago.com',
+          ],
+          'upgrade-insecure-requests': prod ? [] : null,
+        },
+      },
       strictTransportSecurity: prod ? undefined : false,
     }),
   )
