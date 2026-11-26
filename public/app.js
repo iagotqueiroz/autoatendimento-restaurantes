@@ -18,18 +18,24 @@ const sync = document.querySelector('#sync')
 if (sync) {
   const ids = () => [...document.querySelectorAll('.order')].map((el) => el.dataset.id)
   const seen = new Set(ids())
-  let sound
-  document.querySelector('#sound').onclick = async (e) => {
+  let sound,
+    timer,
+    delay = sync.dataset.view === 'cozinha' ? 4000 : 6000
+  document.querySelector('#sound')?.addEventListener('click', async (e) => {
     sound ??= new AudioContext()
     await sound.resume()
     e.target.textContent = 'Som ativado'
-  }
+  })
   function timestamp() {
-    sync.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR')
+    sync.textContent = 'Atualização automática · ' + new Date().toLocaleTimeString('pt-BR')
+    sync.classList.remove('offline')
   }
   async function refresh() {
+    if (document.hidden) return schedule()
     try {
-      const response = await fetch('/painel/cozinha?partial=1', {
+      const url = new URL(location.href)
+      url.searchParams.set('partial', '1')
+      const response = await fetch(url, {
         signal: AbortSignal.timeout(10000),
       })
       if (!response.ok || response.redirected) throw Error()
@@ -47,11 +53,21 @@ if (sync) {
         tone.stop(sound.currentTime + 0.16)
       }
       timestamp()
+      delay = sync.dataset.view === 'cozinha' ? 4000 : 6000
     } catch {
-      sync.textContent = 'Sem conexão com o painel. Tentando novamente…'
+      sync.textContent = 'Sem conexão · tentando novamente…'
+      sync.classList.add('offline')
+      delay = Math.min(delay * 2, 30000)
     }
-    setTimeout(refresh, 5000)
+    schedule()
+  }
+  function schedule() {
+    clearTimeout(timer)
+    timer = setTimeout(refresh, delay)
   }
   timestamp()
-  setTimeout(refresh, 5000)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refresh()
+  })
+  schedule()
 }

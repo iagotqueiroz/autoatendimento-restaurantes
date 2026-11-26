@@ -261,6 +261,7 @@ test('08 · Tablet no Chromium, compra e carrinho limpo para o próximo cliente'
     await page.getByLabel(/Suco/).check()
     await page.getByRole('button', { name: /Adicionar/ }).click()
     await page.locator('#bag').click()
+    await page.locator('.cart-review-thumb').waitFor()
     await page.getByText('Confirmar pedido', { exact: true }).click()
     await page.getByText('Concluir e voltar ao início').click()
     await page.getByText('Iniciar pedido').click()
@@ -377,7 +378,18 @@ test('11 · Celular recupera o pedido após perder a resposta do servidor', asyn
     await page.reload()
     await page.getByText('Consultar ou repetir envio').click()
     await page.waitForURL('**/acompanhar/*')
-    assert.equal(await page.locator('h1').innerText(), 'Pedido #' + firstId)
+    assert.equal(await page.locator('h1').innerText(), 'Pedido recebido!')
+    assert.match(await page.locator('.receipt-hero').innerText(), new RegExp('PEDIDO #' + firstId))
+    await page.locator('.receipt-item img').waitFor()
+    assert.equal(
+      await page.getByRole('link', { name: 'Pedir mais itens' }).getAttribute('href'),
+      menu,
+    )
+    assert.equal((await act(firstId, 'aceito')).status(), 302)
+    await page
+      .locator('#order-stage')
+      .getByText('aceito', { exact: true })
+      .waitFor({ timeout: 10000 })
     const orders = await query('SELECT id FROM orders WHERE store_id=? AND id>=?', [store, firstId])
     assert.equal(orders.length, 1)
   } finally {

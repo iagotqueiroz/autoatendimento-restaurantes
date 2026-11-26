@@ -1,14 +1,63 @@
-<%- include('head',{title:'Acompanhar pedido'}) %><main class="small">
-  <section class="panel"><span class="eyebrow"><%= o.name %> · <%= o.origin %></span>
-    <h1>Pedido #<%= o.id %></h1>
-    <p><%= date(o.created,o.zone) %> · <%= money(o.total) %></p>
-    <p>Etapa <strong><%= o.stage %></strong></p>
-    <p>Pagamento <strong><%= o.payment %></strong></p>
-    <p>
-      <%= o.stage==='aguarda caixa'?'Pague no caixa e informe o pedido nº '+o.id:o.stage==='pronto'?'Seu pedido está pronto. Procure a equipe.':o.stage==='cancelado'?'Pedido cancelado. Fale com o caixa.':o.stage==='entregue'?'Pedido entregue.':'Acompanhe aqui o andamento do preparo.' %>
-    </p><a class="outline" href="">Atualizar acompanhamento</a>
+<%- include('head',{title:'Acompanhar pedido'}) %>
+<header class="menu-header">
+  <a class="menu-brand receipt-brand" href="<%= orderAgain %>">
+    <span class="menu-logo-fallback" aria-hidden="true"><%= o.name.charAt(0).toUpperCase() %></span>
+    <div><small>Seu pedido em</small><strong><%= o.name %></strong></div>
+  </a>
+  <span class="status-chip status-live"><span class="status-dot"></span><%= o.origin %></span>
+</header>
+<%
+  const stageIndex = {'aguarda caixa':0,'aguarda aceite':0,'aceito':1,'em preparo':2,'pronto':3,'entregue':4}[o.stage] ?? 0
+  const cancelled = o.stage === 'cancelado'
+%>
+<main class="receipt-main" id="order-tracker" data-status-url="/acompanhar/<%= o.token %>/status">
+  <section class="receipt-hero <%= cancelled?'receipt-cancelled':'' %>">
+    <div class="receipt-check" aria-hidden="true"><%= cancelled?'!':'✓' %></div>
+    <div>
+      <span class="eyebrow">PEDIDO #<%= o.id %></span>
+      <h1 id="order-title"><%= title %></h1>
+      <p id="order-message" aria-live="polite"><%= message %></p>
+    </div>
+    <div class="receipt-total"><small>Total do pedido</small><strong><%= money(o.total) %></strong></div>
   </section>
-</main>
-</body>
 
+  <section class="order-progress panel" aria-label="Andamento do pedido">
+    <div class="receipt-section-heading"><div><span class="eyebrow">ACOMPANHAMENTO</span><h2>Andamento do pedido</h2></div><span id="live-status" class="live-update"><i></i>Atualizando automaticamente</span></div>
+    <ol class="progress-steps <%= cancelled?'is-cancelled':'' %>" id="progress-steps">
+      <% for(const [index,label] of ['Recebido','Confirmado','Em preparo','Pronto'].entries()){ %>
+        <li class="<%= !cancelled&&stageIndex>=index?'complete':'' %> <%= !cancelled&&stageIndex===index?'current':'' %>" data-step="<%= index %>"><span><%= stageIndex>index?'✓':index+1 %></span><strong><%= label %></strong></li>
+      <% } %>
+    </ol>
+    <div class="order-status-line"><span>Etapa atual</span><strong id="order-stage"><%= o.stage %></strong><span>Pagamento</span><strong id="order-payment"><%= o.payment %></strong></div>
+  </section>
+
+  <div class="receipt-layout">
+    <section class="panel receipt-items">
+      <% const itemCount=o.items.reduce((sum,item)=>sum+item.quantity,0) %>
+      <div class="receipt-section-heading"><div><span class="eyebrow">RESUMO</span><h2>Itens do pedido</h2></div><span class="count-badge"><%= itemCount %> <%= itemCount===1?'item':'itens' %></span></div>
+      <div class="receipt-item-list">
+        <% for(const i of o.items){ const options=json(i.options_json); const unit=i.base+options.reduce((sum,option)=>sum+option.price,0); %>
+          <article class="receipt-item">
+            <% if(i.image){ %><img src="/img/<%= i.image %>" alt=""><% }else{ %><div class="receipt-item-placeholder" aria-hidden="true"><%= i.name.charAt(0).toUpperCase() %></div><% } %>
+            <div><strong><%= i.quantity %> × <%= i.name %></strong>
+              <% if(options.length){ %><small><%= options.map(option=>option.name).join(' · ') %></small><% } %>
+              <% if(i.note){ %><small class="item-note">Observação: <%= i.note %></small><% } %>
+            </div>
+            <b><%= money(unit*i.quantity) %></b>
+          </article>
+        <% } %>
+      </div>
+      <div class="receipt-sum"><span>Total</span><strong><%= money(o.total) %></strong></div>
+    </section>
+
+    <aside class="panel receipt-details">
+      <span class="eyebrow">DETALHES</span><h2>Informações</h2>
+      <dl><div><dt>Número</dt><dd>#<%= o.id %></dd></div><div><dt>Local</dt><dd><%= o.origin %></dd></div><div><dt>Modalidade</dt><dd><%= o.mode %></dd></div><div><dt>Feito em</dt><dd><%= date(o.created,o.zone) %></dd></div></dl>
+      <a class="button-link receipt-order-again" href="<%= orderAgain %>">Pedir mais itens</a>
+      <small>Você pode fazer outro pedido enquanto acompanha este.</small>
+    </aside>
+  </div>
+</main>
+<script defer src="/assets/receipt.js"></script>
+</body>
 </html>

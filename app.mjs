@@ -196,13 +196,63 @@ async function start() {
       base: req.baseUrl,
     })
   })
-  app.get('/acompanhar/:token', async (req, res) => {
+  async function trackedOrder(token, withItems = false) {
     const o = await one(
-      'SELECT o.*,s.name,s.zone,s.slug FROM orders o JOIN stores s ON s.id=o.store_id WHERE o.token=?',
-      [req.params.token],
+      'SELECT o.*,s.name,s.zone,s.slug,t.token AS table_token FROM orders o JOIN stores s ON s.id=o.store_id LEFT JOIN tables_rest t ON t.id=o.table_id WHERE o.token=?',
+      [token],
     )
     check(o, 'Pedido não encontrado.', 404)
-    res.render('receipt', { o })
+    if (withItems) o.items = await query('SELECT * FROM items WHERE order_id=? ORDER BY id', [o.id])
+    return o
+  }
+  const orderMessage = (o) =>
+    o.stage === 'aguarda caixa'
+      ? 'Pague no caixa e informe o número do pedido.'
+      : o.stage === 'aguarda aceite'
+        ? 'Pedido enviado. Aguardando a confirmação da cozinha.'
+        : o.stage === 'aceito'
+          ? 'A cozinha aceitou seu pedido.'
+          : o.stage === 'em preparo'
+            ? 'Seu pedido está sendo preparado.'
+            : o.stage === 'pronto'
+              ? 'Seu pedido está pronto. Procure a equipe.'
+              : o.stage === 'cancelado'
+                ? 'Pedido cancelado. Fale com o caixa.'
+                : o.stage === 'entregue'
+                  ? 'Pedido entregue. Bom apetite!'
+                  : 'Acompanhe aqui o andamento do preparo.'
+  const orderTitle = (o) =>
+    o.stage === 'cancelado'
+      ? 'Pedido cancelado'
+      : o.stage === 'entregue'
+        ? 'Pedido entregue'
+        : o.stage === 'pronto'
+          ? 'Pedido pronto!'
+          : o.stage === 'em preparo'
+            ? 'Preparando seu pedido'
+            : o.stage === 'aceito'
+              ? 'Pedido confirmado'
+              : 'Pedido recebido!'
+  app.get('/acompanhar/:token/status', async (req, res) => {
+    const o = await trackedOrder(req.params.token)
+    res.json({
+      id: o.id,
+      stage: o.stage,
+      payment: o.payment,
+      title: orderTitle(o),
+      message: orderMessage(o),
+      updatedAt: new Date().toISOString(),
+    })
+  })
+  app.get('/acompanhar/:token', async (req, res) => {
+    const o = await trackedOrder(req.params.token, true)
+    res.render('receipt', {
+      o,
+      json,
+      title: orderTitle(o),
+      message: orderMessage(o),
+      orderAgain: o.table_token ? '/m/' + o.table_token : '/l/' + o.slug,
+    })
   })
   app.use((req, res) => res.status(404).render('error', { message: 'Página não encontrada.' }))
   app.use((err, req, res, next) => {

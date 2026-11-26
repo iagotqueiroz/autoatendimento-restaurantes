@@ -17,7 +17,7 @@ const total = () => cart.items.reduce((n, i) => n + i.quantity * i.unit, 0)
 function save() {
   localStorage.setItem(key, JSON.stringify(cart))
   by('bag').textContent =
-    'Ver carrinho (' + cart.items.reduce((n, i) => n + i.quantity, 0) + ')　·　' + money(total())
+    'Ver carrinho (' + cart.items.reduce((n, i) => n + i.quantity, 0) + ') · ' + money(total())
 }
 function el(tag, text, parent = content) {
   const e = document.createElement(tag)
@@ -80,6 +80,7 @@ function detail(id, index = -1) {
     const item = {
       id: p.id,
       name: p.name,
+      image: p.image,
       quantity: Number(qty.value),
       note: note.value,
       options: selected.map((x) => x.o.id),
@@ -109,13 +110,29 @@ function detail(id, index = -1) {
 function review(message = '') {
   modal()
   el('h2', 'Revisar pedido')
+  el('p', 'Confira os itens antes de enviar para a cozinha.').className = 'cart-review-intro'
   for (const [index, i] of cart.items.entries()) {
-    const line = el('section', '')
-    el('h3', i.quantity + ' × ' + i.name, line)
-    el('p', [...i.labels, i.note].filter(Boolean).join(' · '), line)
+    const line = el('article', '')
+    line.className = 'cart-review-line'
+    if (i.image) {
+      const photo = el('img', '', line)
+      photo.src = '/img/' + i.image
+      photo.alt = ''
+      photo.className = 'cart-review-thumb'
+    } else {
+      const placeholder = el('span', i.name.charAt(0).toUpperCase(), line)
+      placeholder.className = 'cart-review-placeholder'
+    }
+    const info = el('div', '', line)
+    info.className = 'cart-review-info'
+    el('h3', i.quantity + ' × ' + i.name, info)
+    const details = [...(i.labels || []), i.note].filter(Boolean).join(' · ')
+    if (details) el('p', details, info)
     el('b', money(i.quantity * i.unit), line)
     if (!cart.pending) {
-      button('Editar', () => detail(i.id, index), line).className = 'quiet'
+      const actions = el('div', '', info)
+      actions.className = 'cart-review-actions'
+      button('Editar', () => detail(i.id, index), actions).className = 'quiet'
       button(
         'Remover',
         () => {
@@ -123,7 +140,7 @@ function review(message = '') {
           save()
           review()
         },
-        line,
+        actions,
       ).className = 'quiet'
     }
   }

@@ -88,7 +88,7 @@ export async function order(storeId, tableToken, input) {
       check(typeof note === 'string' && note.length <= 300)
       total += quantity * unit
       check(total <= 2147483647, 'Total acima do limite.')
-      lines.push([p.name, base, JSON.stringify(extras), quantity, note])
+      lines.push([p.id, p.image, p.name, base, JSON.stringify(extras), quantity, note])
     }
     const policy = table ? store.table_pay : store.kiosk_pay,
       token = randomBytes(32).toString('hex')
@@ -109,7 +109,7 @@ export async function order(storeId, tableToken, input) {
     )
     for (const line of lines)
       await query(
-        'INSERT INTO items(order_id,name,base,options_json,quantity,note) VALUES(?,?,?,?,?,?)',
+        'INSERT INTO items(order_id,product_id,image,name,base,options_json,quantity,note) VALUES(?,?,?,?,?,?,?,?)',
         [r.insertId, ...line],
         db,
       )

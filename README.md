@@ -170,6 +170,8 @@ Se o terminal do plano não oferecer Node, `MIGRATE_ON_START=true` já executa a
 
 O carrinho fica no navegador por loja e canal. Se o envio perder a resposta, use **Consultar ou repetir envio**. O servidor reconhece a tentativa já registrada. Se um item ou preço mudar, recarregue, edite ou remova o item e confirme novamente. No celular, guarde o link privado de acompanhamento. No balcão, a confirmação exibe o número e volta ao início por botão ou após 20 segundos.
 
+O acompanhamento do cliente e os painéis de caixa e cozinha são atualizados automaticamente. O resumo do pedido preserva a foto associada ao produto no momento da compra, e o cliente pode usar **Pedir mais itens** sem encerrar o acompanhamento atual. O recorte funcional e as próximas fases estão em [`docs/mvp-roadmap.md`](docs/mvp-roadmap.md).
+
 ## D. Testar, atualizar e manter
 
 ### Executar a suíte no Windows
@@ -185,7 +187,7 @@ npm test
 
 O teste exige um banco exclusivo com nome terminado em `_test`. Sobe seu próprio servidor na porta 3319, usa lojas de teste com nomes únicos e encerra o processo no fim. Os registros ficam nesse banco para inspeção. Se necessário, defina `TEST_PORT` ou `CHROMIUM_PATH` com o caminho do Chromium instalado. A aplicação em desenvolvimento pode continuar na porta 3000.
 
-**Validação realizada.** 13 testes passaram na suíte de integração com MySQL Community Server 8.4.13 e Chromium. Os cenários cobrem cadastro e publicação com foto, decodificação do QR, isolamento, CSRF, preços e limites, mesa e modalidade do tablet, filas de pagamento, concorrência de caixas, reenvio concorrente, pausa e suspensão, etapas, devolução, perfis, recuperação após perda da resposta, limpeza do tablet e persistência de sessão, imagens e histórico após migração repetida e reinício. Um backup de teste foi restaurado em outro banco, com a mesma contagem de pedidos, imagens e bytes de imagem. O teste de atualização simula uma nova execução sobre o banco existente. O aceite no hPanel, o Wi-Fi do estabelecimento, câmera, impressão, som e maquininha exigem o ambiente do restaurante.
+**Validação realizada.** 16 testes passaram na suíte de integração com banco SQL e Chromium. Os cenários cobrem cadastro, assinatura, publicação com foto, decodificação do QR, isolamento, CSRF, preços e limites, mesa e tablet, filas de pagamento, concorrência de caixas, reenvio, pausa e suspensão, etapas, devolução, perfis, atualização automática do acompanhamento, resumo visual, novo pedido pela mesma mesa, limpeza do tablet e persistência de sessão, imagens e histórico após migração repetida e reinício. O aceite no hPanel, o Wi-Fi do estabelecimento, câmera, impressão, som, Mercado Pago real e maquininha exigem o ambiente de produção.
 
 ### Enviar uma versão nova
 
@@ -257,7 +259,8 @@ O operador autorizado da plataforma deve verificar a identidade da pessoa. No te
 | `src/db.js`                       | Conexão MySQL, consultas parametrizadas e transações                 |
 | `views/`                          | Telas EJS e textos em português                                      |
 | `public/app.css`                  | Cores, componentes e disposição responsiva                           |
-| `public/cart.js`, `public/app.js` | Carrinho, modo tablet e atualização da cozinha                       |
+| `public/cart.js`, `public/app.js` | Carrinho, modo tablet e atualização de caixa/cozinha                 |
+| `public/receipt.js`               | Atualização automática do acompanhamento do cliente                  |
 | `migrations/`, `scripts/`         | Esquema versionado, instalação, administração e demonstração         |
 | `tests/turno.test.js`             | Fluxos HTTP e testes de navegador contra o banco real                |
 

@@ -1,12 +1,12 @@
 <%- include('head',{title:view}) %><%- include('nav') %><main><span class="eyebrow">ATENDIMENTO</span>
-  <h1><%= view==='cozinha'?'Fila da cozinha':'Caixa e entrega' %></h1><% if(view==='cozinha'){ %><div class="row">
-    <button id="sound">Ativar som</button><span id="sync" role="status"></span></div><% }else{ %><form
+  <h1><%= view==='cozinha'?'Fila da cozinha':'Caixa e entrega' %></h1><% if(view==='cozinha'){ %><div class="row board-live-bar">
+    <button id="sound">Ativar som</button><span id="sync" data-view="<%= view %>" role="status"></span></div><% }else{ %><form
     class="filters row"><label>Número ou mesa<input name="q"
         value="<%= filters.q %>"></label><% for(const [key,title,options] of [['payment','Pagamento',['pendente','pago','a devolver','devolvido','cancelado']],['stage','Etapa',['aguarda caixa','aguarda aceite','aceito','em preparo','pronto','entregue','cancelado']]]){ %><label><%= title %><select
         name="<%= key %>">
         <option value="">Todos</option><% for(const o of options){ %><option <%= filters[key]===o?'selected':'' %>>
           <%= o %></option><% } %>
-      </select></label><% } %><button>Buscar</button></form><% } %><div class="grid" id="cards"><%- include('cards') %>
+      </select></label><% } %><button>Buscar</button></form><div class="board-live-bar"><span id="sync" data-view="<%= view %>" role="status"></span></div><% } %><div class="grid" id="cards"><%- include('cards') %>
   </div>
 </main>
 </body>
